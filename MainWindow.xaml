@@ -7,7 +7,8 @@
         MinHeight="500" 
         MinWidth="600"
         WindowStartupLocation="CenterScreen"
-        Background="#F0F2F5">
+        Background="#008080"
+        Icon="clasificadoria.ico">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="15">
@@ -32,21 +33,12 @@
                                FontSize="22" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                 </Border>
                 <!-- Selector de idioma -->
-                <ComboBox Grid.Column="1" x:Name="ComboIdioma" Width="120" Height="35" 
-                          SelectionChanged="ComboIdioma_SelectionChanged"
-                          Background="White" BorderBrush="#BDC3C7" Margin="0,0,0,0">
-                    <ComboBoxItem Tag="es" IsSelected="True">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🇪🇸 " FontSize="18"/>
-                            <TextBlock Text="Español" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </ComboBoxItem>
-                    <ComboBoxItem Tag="en">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="🇺🇸 " FontSize="18"/>
-                            <TextBlock Text="English" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </ComboBoxItem>
+                <ComboBox Grid.Column="1" x:Name="ComboIdioma" 
+          Width="100" Height="35" 
+          SelectionChanged="ComboIdioma_SelectionChanged"
+          Background="White" BorderBrush="#BDC3C7">
+                    <ComboBoxItem Tag="es" IsSelected="True">Español</ComboBoxItem>
+                    <ComboBoxItem Tag="en">English</ComboBoxItem>
                 </ComboBox>
             </Grid>
 
