@@ -3,68 +3,37 @@
 [![Licencia MIT](https://img.shields.io/badge/Licencia-MIT-green.svg)](LICENSE)
 [![.NET 8](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
 [![Plataforma](https://img.shields.io/badge/Plataforma-Windows-0078D6?logo=windows)](https://github.com/adriangoodrich/ClasificadorIA/releases)
-[![Último commit](https://img.shields.io/github/last-commit/adriangoodrich/ClasificadorIA)](https://github.com/adriangoodrich/ClasificadorIA/commits/main)
-[![GitHub release](https://img.shields.io/github/v/release/adriangoodrich/ClasificadorIA?include_prereleases)](https://github.com/adriangoodrich/ClasificadorIA/releases)
 
-> Aplicación de escritorio para Windows que clasifica automáticamente tus archivos en carpetas temáticas utilizando inteligencia artificial (ChatGPT, Claude, DeepSeek, Gemini y más).
-
----
-
-## 📸 Capturas de pantalla
-
-| Pantalla principal | Vista de categorías | Progreso |
-|---|---|---|
-| ![Principal](screenshots/main.png) | ![Categorias](screenshots/categories.png) | ![Progreso](screenshots/progress.png) |
+> Aplicación de escritorio para Windows que clasifica automáticamente tus archivos en carpetas temáticas. Compatible con cualquier IA que responda JSON (`categorias`): ChatGPT, Claude, DeepSeek, Gemini, Ollama y más.
 
 ---
 
 ## ✨ Características
 
-- 🖥️ **Interfaz gráfica moderna** con WPF, diseño limpio y scroll automático adaptado a ventanas de cualquier tamaño
-- 📁 **Selección de carpeta** mediante el diálogo estándar de Windows
-- 🎯 **Modos de clasificación** especializados:
-  - 🗃️ **Genérico** — clasificación por temática general
-  - 🎵 **Música** — por género, artista, época o álbum
-  - 🎬 **Películas** — por género, director, año o saga
-  - 📺 **Series** — por género, plataforma o temporada
-  - 📚 **Libros** — por género literario, autor o colección
-- 🔢 **Niveles de profundidad** ajustables: 5, 10 o 15 categorías aproximadas para controlar la granularidad
-- 📝 **Generación de prompt inteligente** personalizado según el modo, criterio y profundidad seleccionados
-- 📋 **Copiar o guardar prompt** como archivo `.txt` para pegarlo en cualquier IA
-- 🤖 **Compatible con cualquier IA** — ChatGPT, Claude, DeepSeek, Gemini, Mistral, etc.
-- 📥 **Carga de respuesta flexible** — pega directamente desde el portapapeles o importa un archivo `.txt` / `.json`
-- 👁️ **Vista previa de categorías** con número de archivos incluidos y listado de los primeros elementos
-- ⚙️ **Procesamiento final** con opción de **copiar** o **mover** archivos a las subcarpetas creadas
-- 📊 **Ventana de progreso flotante** con barra de progreso en tiempo real y botón de cancelar
-- 🛡️ **Manejo robusto de nombres** — normalización de mayúsculas/minúsculas y caracteres especiales para evitar errores de "archivo no encontrado"
+- 🖥️ **Interfaz moderna** construida sobre la plantilla `NoCloudware.UI.Core` (ShellWindow + Aether), tema **claro/oscuro** conmemutable.
+- 🌐 **Bilingüe** — español / inglés conmutable en vivo.
+- 📁 **Entrada flexible** — arrastra y suelta archivos, selección de archivos, o elige una carpeta completa de origen.
+- 🎯 **Modos de clasificación** especializados: Genérico, Música, Películas, Series y Libros.
+- 🔢 **Niveles de profundidad** ajustables: 5, 10 o 15 categorías aproximadas.
+- ✍️ **Método Manual** — la app genera un prompt optimizado (criterio + lista de archivos), lo copias a tu IA favorita y pegas (o cargas) la respuesta JSON.
+- 🤖 **Método Auto (BYOK)** — bring-your-own-key: configuras tu proveedor y API key una vez, y la app clasifica directamente sin salir de ella. Sin cuentas de terceros, 0 NuGet.
+- 👁️ **Árbol de categorías** — tras clasificar, muestra cada categoría con sus archivos.
+- ⚙️ **Procesamiento final** — copiar o mover los archivos a las subcarpetas creadas, con progreso en vivo y cancelación.
+- 🛡️ **Manejo robusto** — normalización de nombres y filtrado de archivos de sistema (`.exe`, `.dll`, etc.).
 
 ---
 
 ## 🖥️ Requisitos del sistema
 
-| Requisito | Versión mínima |
+| Requisito | Versión |
 |---|---|
 | Sistema operativo | Windows 10 / Windows 11 |
 | .NET Runtime | [.NET 8.0](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) o superior |
 | Arquitectura | x64 |
-| RAM | 256 MB |
 
 ---
 
-## 🚀 Instalación
-
-### Opción 1 — Descarga directa (recomendado)
-
-1. Ve a la sección [**Releases**](https://github.com/adriangoodrich/ClasificadorIA/releases)
-2. Descarga el archivo `.zip` de la última versión
-3. Extrae el contenido en la carpeta que prefieras
-4. Ejecuta `ClasificadorIA.exe`
-
-> **Nota:** Asegúrate de tener instalado el [.NET 8 Runtime](https://dotnet.microsoft.com/en-us/download/dotnet/8.0) antes de ejecutar la aplicación.
-
----
-
-### Opción 2 — Compilar desde el código fuente
+## 🚀 Compilar desde el código fuente
 
 #### Prerrequisitos
 
@@ -74,100 +43,101 @@
 #### Pasos
 
 ```bash
-# Clona el repositorio
 git clone https://github.com/adriangoodrich/ClasificadorIA.git
-
-# Entra en la carpeta del proyecto
 cd ClasificadorIA
-
-# Compila el proyecto
-dotnet build --configuration Release
-
-# Ejecuta la aplicación
-dotnet run
+dotnet build ClasificadorIA.slnx --configuration Release
+dotnet run --project ClasificadorIA
 ```
 
 ---
 
 ## 📖 Guía de uso
 
-### Paso 1 — Selecciona una carpeta
+### Paso 1 — Carga los archivos
 
-Haz clic en **"Seleccionar carpeta"** y elige el directorio que contiene los archivos que deseas clasificar.
+Arrastra y suelta archivos, usa **"Seleccionar archivos"**, o elige una **carpeta de origen** completa desde el panel derecho.
 
 ### Paso 2 — Configura la clasificación
 
-Elige el **modo** más adecuado para tus archivos (Genérico, Música, Películas, etc.), selecciona un **criterio** de clasificación y ajusta el **nivel de profundidad** (número de categorías).
+En el panel derecho elige el **modo** (Genérico, Música, Películas, Series, Libros), el **criterio** y el **nivel de profundidad**. Elige también **Método Manual** o **Método Auto (BYOK)**.
 
-### Paso 3 — Genera el prompt
+### Paso 3 — Clasifica
 
-Haz clic en **"Generar prompt"**. La aplicación creará automáticamente un texto optimizado con la lista de tus archivos y las instrucciones para la IA.
+- **Manual:** la app marca el prompt (se copia con un clic). Pégalo en tu IA favorita, y cuando te devuelva la respuesta en **formato JSON con la clave `categorias`**, pégalo o cárgalo. Pulsa **"Clasificar"**.
+- **Auto:** configura tu proveedor y API key en el botón **BYOK** (véase abajo). Pulsa **"Clasificar"** y la app se conecta a la IA automáticamente.
 
-### Paso 4 — Copia el prompt y consúltalo en tu IA favorita
+Verás el **árbol de categorías** con el número de archivos por categoría.
 
-Usa el botón **"Copiar al portapapeles"** o guárdalo como `.txt`. Pégalo en ChatGPT, Claude, DeepSeek, Gemini u otra IA de tu elección.
+### Paso 4 — Aplica la clasificación
 
-### Paso 5 — Carga la respuesta de la IA
+Elige **Copiar** o **Mover**, define la carpeta de salida y pulsa **"Organizar"**. El progreso se muestra en la barra de estado; puedes **cancelar** en cualquier momento.
 
-Una vez la IA te devuelva la clasificación en formato JSON, vuelve a la aplicación y:
-- Pega la respuesta con **"Pegar desde portapapeles"**, o
-- Importa el archivo con **"Cargar desde archivo"**
+---
 
-### Paso 6 — Revisa las categorías
+## 🔑 Modo Auto (BYOK)
 
-La aplicación mostrará todas las categorías detectadas con el número de archivos y una vista previa de los primeros elementos. Verifica que todo sea correcto.
+Sin cuentas ni claves de la aplicación — traes tu propia clave de tu proveedor de IA.
 
-### Paso 7 — Aplica la clasificación
+1. En el panel derecho, activa **Método Auto** y pulsa el botón **BYOK**.
+2. Elige un proveedor (ChatGPT, Claude, DeepSeek, Gemini, Ollama, Mistral, Groq…), pega tu **API key** y ajusta el **modelo** y la **temperatura**.
+3. Prueba la conexión; al guardar, la configuración queda en `%LOCALAPPDATA%\ClasificadorIA\byok.json` (nunca se sube a ningún servidor propio).
+4. Pulsa **"Clasificar"** en el panel.
 
-Elige si deseas **copiar** o **mover** los archivos, y haz clic en **"Procesar"**. Una ventana de progreso te mostrará el avance en tiempo real. Puedes cancelar el proceso en cualquier momento.
+Puedes guardar varios proveedores y elegir uno como activo, o eliminar credenciales guardadas cuando quieras.
+
+---
+
+## 🧪 Auto-prueba
+
+El ejecutable incluye una suite de auto-prueba (sin interfaz) que valida prompt, parser, organizador, filtros, traducciones, configuración BYOK, cliente IA offline y el flujo completo extremo a extremo:
+
+```bash
+ClasificadorIA.exe --selftest
+```
+
+Salida esperada: `SELF-TEST: OK` (exit code `0`).
+
+---
+
+## 🏗️ Estructura del proyecto
+
+```
+ClasificadorIA/
+├── ClasificadorIA.slnx            # Solución (app + núcleo UI)
+├── ClasificadorIA/                # Aplicación (composition root)
+│   ├── App.xaml(.cs)              # Composition root: ventana, prefs, wiring
+│   ├── Models/                    # AiProvider, ByokConfig, ClassificationResult…
+│   ├── Services/                  # PromptGenerator, ResponseParser, FileOrganizer,
+│   │                              # AiClient (0 NuGets), ByokConfigStore, SelfTest…
+│   └── Panels/                    # OptionsPanel, ByokDialog
+├── NoCloudware.UI.Core/           # Plantilla de núcleo UI (copia local, patrón TubeMassDL)
+│   ├── Controls/                  # ShellWindow, BaseMainControl, FileListBox…
+│   └── Themes/Aether/             # Sistema de temas
+└── docs/superpowers/              # Spec y plan de diseño
+```
+
+La lógica de negocio vive en `ClasificadorIA/` sin dependencia de WPF; `NoCloudware.UI.Core/` es la capa de presentación reutilizable.
 
 ---
 
 ## 🛠️ Tecnologías utilizadas
 
-| Tecnología | Descripción |
+| Tecnología | Uso |
 |---|---|
-| [C# / .NET 8.0](https://dotnet.microsoft.com/) | Lenguaje y plataforma principal |
-| [WPF (Windows Presentation Foundation)](https://learn.microsoft.com/es-es/dotnet/desktop/wpf/) | Framework de interfaz gráfica |
-| [System.Text.Json](https://learn.microsoft.com/es-es/dotnet/standard/serialization/system-text-json/overview) | Deserialización de respuestas JSON de la IA |
-| [CancellationToken](https://learn.microsoft.com/es-es/dotnet/standard/threading/cancellation-in-managed-threads) | Cancelación de operaciones en progreso |
-
----
-
-## 🤝 Contribuir
-
-¡Las contribuciones son bienvenidas! Si quieres mejorar este proyecto:
-
-1. Haz un **fork** del repositorio
-2. Crea una nueva rama con tu mejora:
-   ```bash
-   git checkout -b feature/mi-mejora
-   ```
-3. Realiza tus cambios y haz commit:
-   ```bash
-   git commit -m "feat: descripción de la mejora"
-   ```
-4. Sube los cambios a tu fork:
-   ```bash
-   git push origin feature/mi-mejora
-   ```
-5. Abre un **Pull Request** explicando los cambios realizados
-
-### 🐛 Reportar errores
-
-Si encuentras algún bug, abre un [Issue](https://github.com/adriangoodrich/ClasificadorIA/issues) con:
-- Descripción del problema
-- Pasos para reproducirlo
-- Versión de la aplicación y de Windows
+| [C# / .NET 8.0](https://dotnet.microsoft.com/) | Plataforma principal |
+| [WPF](https://learn.microsoft.com/es-es/dotnet/desktop/wpf/) | Interfaz gráfica |
+| [NoCloudware.UI.Core](NoCloudware.UI.Core/) | Plantilla de núcleo UI (copia local) |
+| [System.Text.Json](https://learn.microsoft.com/es-es/dotnet/standard/serialization/system-text-json/overview) | Perfil de preferencias y respuestas JSON |
+| `System.Net.Http` / `System.Text.Json` (BCL) | Cliente IA multiproveedor — **0 NuGet**
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está distribuido bajo la licencia **MIT**. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+Distribuido bajo la licencia **MIT**. Consulta [LICENSE](LICENSE).
 
 ```
-MIT License — Copyright (c) 2024 adriangoodrich
+MIT License — Copyright (c) adriangoodrich
 ```
 
 ---
