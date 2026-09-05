@@ -23,6 +23,7 @@ public static class SelfTest
         RunByokConfigStore();
         RunAiClientOffline();
         RunFileListCustomContent();
+        RunEndToEnd();
 
         if (Failures.Count == 0)
         {
@@ -321,5 +322,42 @@ public static class SelfTest
         Assert("DP null: panel oculto otra vez", panel.Visibility == Visibility.Collapsed);
         Assert("DP null: lista visible otra vez", fileList.Visibility == Visibility.Visible);
         Assert("DP null: contenido limpio", panel.Content == null);
+    }
+
+    // ── E2E (flujo App sin UI) ─────────────────────────────────────────────
+
+    private static void RunEndToEnd()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "clasif-e2e-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(root);
+            string[] names = { "cancion1.mp3", "cancion2.mp3", "documento1.pdf", "foto1.jpg", "tool.exe", "setup.dll" };
+            foreach (var n in names)
+                File.WriteAllText(Path.Combine(root, n), "x");
+
+            var files = Directory.GetFiles(root).Select(f => Path.GetFileName(f)!).Where(f => !FileFilters.IsSystemFile(f)).ToList();
+            Assert("E2E: filtro excluye .exe/.dll", files.Count == 4, $"got {files.Count}");
+
+            var (mode, criterion, depth) = (ClassificationModes.Find("Música")!, "Género", 5);
+            string prompt = PromptGenerator.Generate(mode, criterion, depth, Idioma.Español, files);
+            Assert("E2E: prompt con archivos", files.All(prompt.Contains));
+
+            string response = """{"categorias":{"Rock":["cancion1.mp3","cancion2.mp3"],"Papeles":["documento1.pdf","foto1.jpg"]}}""";
+            var results = ResponseParser.Parse(response, files, Idioma.Español);
+            Assert("E2E: categorías parseadas", results.Count == 2);
+            Assert("E2E: archivos casados", results.Sum(r => r.Files.Count) == 4);
+
+            string dest = Path.Combine(root, "out");
+            var result = FileOrganizer.Organize(root, dest, results, copy: false, CancellationToken.None);
+            Assert("E2E: organizados", result.Processed == 4 && result.Errors == 0, $"p{result.Processed} e{result.Errors}");
+            Assert("E2E: carpeta Rock", Directory.Exists(Path.Combine(dest, "Rock")) && File.Exists(Path.Combine(dest, "Rock", "cancion1.mp3")));
+            Assert("E2E: carpeta Papeles", Directory.Exists(Path.Combine(dest, "Papeles")) && File.Exists(Path.Combine(dest, "Papeles", "foto1.jpg")));
+            Assert("E2E: origen vacío tras mover", !File.Exists(Path.Combine(root, "cancion1.mp3")));
+        }
+        finally
+        {
+            try { Directory.Delete(root, true); } catch { }
+        }
     }
 }

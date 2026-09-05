@@ -119,14 +119,26 @@
                 </StackPanel>
                 <TextBox x:Name="ResponseBox"
                          Style="{DynamicResource AetherTextBoxStyle}"
-                         IsReadOnly="True"
                          AcceptsReturn="True"
                          MinHeight="120"
                          MaxHeight="200"
                          TextWrapping="Wrap"
                          Margin="0,6,0,6"/>
 
-                <!-- 6. Clasificar -->
+                <!-- 6. Copiar / Mover -->
+                <TextBlock x:Name="OutputModeLabel"
+                           Style="{DynamicResource AetherCaptionStyle}"
+                           Margin="0,8,0,0"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                    <RadioButton x:Name="CopyRadio"
+                                 Style="{DynamicResource AetherRadioButtonStyle}"
+                                 IsChecked="True"
+                                 Margin="0,0,16,0"/>
+                    <RadioButton x:Name="MoveRadio"
+                                 Style="{DynamicResource AetherRadioButtonStyle}"/>
+                </StackPanel>
+
+                <!-- 7. Clasificar -->
                 <Button x:Name="ClassifyBtn"
                         Style="{DynamicResource PrimaryButtonStyle}"
                         HorizontalAlignment="Center"

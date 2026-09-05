@@ -15,7 +15,8 @@ public static class FileOrganizer
 
     public static OrganizeResult Organize(
         string sourceDir, string destDir, IReadOnlyList<ClassificationResult> results,
-        bool copy, CancellationToken ct, Action<int, int>? onProgress = null)
+        bool copy, CancellationToken ct, Action<int, int>? onProgress = null,
+        Action<string, bool>? onFile = null)
     {
         if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
             throw new DirectoryNotFoundException($"Carpeta origen no existe: {sourceDir}");
@@ -37,6 +38,7 @@ public static class FileOrganizer
             foreach (string file in result.Files)
             {
                 if (ct.IsCancellationRequested) break;
+                bool ok = false;
                 try
                 {
                     string src = Path.Combine(sourceDir, file);
@@ -46,6 +48,7 @@ public static class FileOrganizer
                         if (copy) File.Copy(src, dest, true);
                         else File.Move(src, dest, true);
                         processed++;
+                        ok = true;
                     }
                     else
                     {
@@ -56,6 +59,7 @@ public static class FileOrganizer
                 {
                     errors++;
                 }
+                onFile?.Invoke(file, ok);
                 onProgress?.Invoke(processed, errors);
             }
         }

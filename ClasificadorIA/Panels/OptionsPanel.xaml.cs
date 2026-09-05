@@ -13,8 +13,16 @@ public partial class OptionsPanel : UserControl
         Loaded += (_, _) => ApplyLanguage();
         Translations.LanguageChanged += (_, _) => ApplyLanguage();
 
-        MethodManual.Checked += (_, _) => ByokButton.Visibility = Visibility.Collapsed;
-        MethodAuto.Checked += (_, _) => ByokButton.Visibility = Visibility.Visible;
+        MethodManual.Checked += (_, _) =>
+        {
+            ByokButton.Visibility = Visibility.Collapsed;
+            PanelHintText.Text = "";
+        };
+        MethodAuto.Checked += (_, _) =>
+        {
+            ByokButton.Visibility = Visibility.Visible;
+            PanelHintText.Text = Translations.Get("AutoByokHint");
+        };
     }
 
     private void ApplyLanguage()
@@ -36,6 +44,9 @@ public partial class OptionsPanel : UserControl
         ResponseSectionLabel.Text = Translations.Get("PasteResponse");
         PasteResponseBtn.Content = Translations.Get("PasteResponse");
         LoadResponseBtn.Content = Translations.Get("Load");
+        OutputModeLabel.Text = Translations.Get("OutputMode");
+        CopyRadio.Content = Translations.Get("CopyFiles");
+        MoveRadio.Content = Translations.Get("MoveFiles");
         ClassifyBtn.Content = Translations.Get("Classify");
         if (PathText.Text.Length == 0)
             PathText.Text = Translations.Get("NoFolderSelected");
