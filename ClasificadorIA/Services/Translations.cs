@@ -70,6 +70,7 @@ public static class Translations
         ["Error"] = ("Error", "Error"),
         // BYOK dialog
         ["ByokTitle"] = ("Configuración BYOK", "BYOK Settings"),
+        ["ByokDescription"] = ("Trae tu propia API key y elige el proveedor que prefieras.", "Bring your own API key and pick the provider you prefer."),
         ["Provider"] = ("Proveedor", "Provider"),
         ["Model"] = ("Modelo", "Model"),
         ["ApiKey"] = ("API Key", "API Key"),
@@ -86,12 +87,47 @@ public static class Translations
         ["ProviderNeedsKey"] = ("Proveedor {0} requiere API key.", "Provider {0} requires an API key."),
         ["SaveByokConfirm"] = ("Guardar cambios de configuración BYOK?", "Save BYOK settings changes?"),
         ["DeleteByokConfirm"] = ("Eliminar proveedor {0}?", "Delete provider {0}?"),
+        ["Name"] = ("Nombre", "Name"),
+        ["Scheme"] = ("Esquema", "Scheme"),
+        ["LoadingModels"] = ("Cargando modelos…", "Loading models…"),
+        ["ModelsLoaded"] = ("{0} modelos disponibles", "{0} models available"),
+        ["ModelHint"] = ("Selecciona o escribe un modelo", "Select or type a model"),
+        ["ByokNeedsFields"] = ("Completa nombre, base URL y modelo.", "Complete name, base URL and model."),
+        ["ByokOkLabel"] = ("Guardado", "Saved"),
+        ["ByokErrorTitle"] = ("BYOK", "BYOK"),
+        ["ErrAuth"] = ("API key inválida. Verifica tus credenciales.", "Invalid API key. Check your credentials."),
+        ["ErrNotFound"] = ("Base URL o modelo no encontrado (404).", "Base URL or model not found (404)."),
+        ["ErrRateLimit"] = ("Rate limit alcanzado. Espera un momento.", "Rate limit reached. Wait a moment."),
+        ["ErrTimeout"] = ("Tiempo de espera agotado.", "Connection timed out."),
+        ["ErrNetwork"] = ("No se pudo conectar. Revisa la red o la base URL.", "Could not connect. Check network or base URL."),
+        ["ErrGeneric"] = ("Error: {0}", "Error: {0}"),
+        ["ErrNoModel"] = ("Selecciona un modelo.", "Select a model."),
+        ["ProvidersEmpty"] = ("No hay proveedores. Agrega uno personalizado.", "No providers. Add a custom one."),
+        ["NewProviderDefaultName"] = ("Nuevo proveedor", "New provider"),
     };
 
     public static string Get(string key, Idioma idioma) =>
         Map.TryGetValue(key, out var pair) ? (idioma == Idioma.Español ? pair.Es : pair.En) : key;
 
     public static string Get(string key) => Get(key, Current);
+
+    public static string AiErrorMessage(AiException ex, Idioma idioma)
+    {
+        string key = ex.ErrorCode switch
+        {
+            "auth" => "ErrAuth",
+            "not_found" => "ErrNotFound",
+            "rate_limit" => "ErrRateLimit",
+            "timeout" => "ErrTimeout",
+            "network" => "ErrNetwork",
+            "missing_key" => "ProviderNeedsKey",
+            "no_model" => "ErrNoModel",
+            _ => "ErrGeneric",
+        };
+        if (key == "ErrGeneric")
+            return string.Format(Get(key, idioma), ex.Message);
+        return Get(key, idioma);
+    }
 
     public static string ModeLabel(string modeKey, Idioma idioma) => idioma == Idioma.Español
         ? modeKey switch

@@ -34,6 +34,13 @@ public sealed class AiProvider
         }
     }
 
+    public AiProvider Clone() => new()
+    {
+        Id = Id, Name = Name, Scheme = Scheme, BaseUrl = BaseUrl, ApiKey = ApiKey,
+        Models = new List<string>(Models), SelectedModel = SelectedModel,
+        ApiKeyUrl = ApiKeyUrl, Temperature = Temperature, JsonMode = JsonMode
+    };
+
     public static IReadOnlyList<AiProvider> DefaultPresets() => new List<AiProvider>
     {
         new()
