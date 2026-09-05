@@ -1,0 +1,41 @@
+## Contexto para OpenCode
+
+Voy a entregarte la especificación de una nueva aplicación para Windows Desktop.
+
+### Tu tarea
+
+Implementar esta app usando **NoCloudware.UI.Core**, mi framework existente.
+
+### Lo que debes saber del Core
+
+El Core ya provee:
+- Ventana principal (ShellWindow) con borde personalizado, drag & drop, toolbar
+- Temas claro/oscuro (toggle en UI)
+- 8 idiomas (selector en UI)
+- Lista de archivos con drag & drop, menú contextual
+- Barra de estado con contadores (total/procesados/pendientes/errores)
+- Procesamiento por lotes con progreso
+- Servicios: UpdateService (GitHub), DonationService, ThemeService, LanguageService
+- Soporte para Shell Extension (menú contextual en Explorer)
+
+### Tu responsabilidad
+
+1. **Implementar IFileProcessor** con la lógica específica de esta app
+2. **Configurar ShellWindow** con AppTitle, ActionButtonText, DropText, AcceptedFormatsText
+3. **Conectar los eventos** (ActionClick, AboutClick, DonateClick)
+4. **Configurar AboutDialog** (versión, copyright, créditos de terceros)
+5. **(Opcional) Registrar ShellExtension** si la app lo necesita
+
+### No necesitas modificar el Core
+
+El Core ya tiene todo. Solo implementa la interfaz.
+
+### Formato de respuesta
+
+Genera el código completo de:
+- App.xaml / App.xaml.cs
+- MainWindow.xaml / MainWindow.xaml.cs  
+- MiAppProcessor.cs (implementando IFileProcessor)
+- (Opcional) MiAppShellConfig.cs si aplica
+
+### Entregaré la especificación a continuación...

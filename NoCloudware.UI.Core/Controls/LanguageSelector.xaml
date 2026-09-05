@@ -1,0 +1,21 @@
+<UserControl x:Class="NoCloudware.UI.Core.Controls.LanguageSelector"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ComboBox x:Name="LanguageCombo"
+               Style="{DynamicResource ThemedComboBoxStyle}"
+               MinWidth="{Binding ComboMinWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+               MaxWidth="{Binding ComboMaxWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+              VerticalContentAlignment="Center"
+              ItemsSource="{Binding Languages, RelativeSource={RelativeSource AncestorType=UserControl}}"
+              SelectionChanged="OnSelectionChanged">
+        <ComboBox.ItemTemplate>
+            <DataTemplate>
+                <Image Source="{Binding Flag}"
+                       Width="{Binding FlagWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       Height="{Binding FlagHeight, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+            </DataTemplate>
+        </ComboBox.ItemTemplate>
+    </ComboBox>
+</UserControl>

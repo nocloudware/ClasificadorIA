@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Button.AcercaDe" xml:space="preserve">
+    <value>À propos</value>
+  </data>
+  <data name="Button.Donar" xml:space="preserve">
+    <value>Faire un don</value>
+  </data>
+  <data name="Button.Salir" xml:space="preserve">
+    <value>Quitter</value>
+  </data>
+  <data name="Button.Action" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="DropZone.DefaultText" xml:space="preserve">
+    <value>Glissez les fichiers ici ou cliquez pour sélectionner</value>
+  </data>
+  <data name="DropZone.ClickToSelect" xml:space="preserve">
+    <value>Sélectionner des fichiers</value>
+  </data>
+  <data name="Status.Total" xml:space="preserve">
+    <value>fichiers</value>
+  </data>
+  <data name="Status.Processed" xml:space="preserve">
+    <value>traités</value>
+  </data>
+  <data name="Status.Pending" xml:space="preserve">
+    <value>en attente</value>
+  </data>
+  <data name="Status.Errors" xml:space="preserve">
+    <value>erreurs</value>
+  </data>
+  <data name="Dialog.About.Title" xml:space="preserve">
+    <value>À propos</value>
+  </data>
+  <data name="Dialog.About.Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Dialog.About.Copyright" xml:space="preserve">
+    <value>Copyright © 2026 NoCloudware</value>
+  </data>
+  <data name="Dialog.About.ThirdParty" xml:space="preserve">
+    <value>Composants tiers</value>
+  </data>
+  <data name="Dialog.About.CheckUpdates" xml:space="preserve">
+    <value>Vérifier les mises à jour</value>
+  </data>
+  <data name="Dialog.About.Close" xml:space="preserve">
+    <value>Fermer</value>
+  </data>
+  <data name="Language.Changed" xml:space="preserve">
+    <value>Langue changée</value>
+  </data>
+  <data name="Theme.Changed" xml:space="preserve">
+    <value>Thème changé</value>
+  </data>
+  <data name="Update.Available" xml:space="preserve">
+    <value>Mise à jour disponible</value>
+  </data>
+  <data name="Update.UpToDate" xml:space="preserve">
+    <value>Vous utilisez la dernière version</value>
+  </data>
+  <data name="Button.SelectFiles" xml:space="preserve">
+    <value>Sélectionner des fichiers</value>
+  </data>
+  <data name="Button.Change" xml:space="preserve">
+    <value>Changer</value>
+  </data>
+  <data name="OutputFolder.DefaultText" xml:space="preserve">
+    <value>Même dossier que la source</value>
+  </data>
+</root>

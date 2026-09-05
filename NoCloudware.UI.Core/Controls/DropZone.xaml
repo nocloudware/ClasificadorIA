@@ -1,0 +1,46 @@
+<UserControl x:Class="NoCloudware.UI.Core.Controls.DropZone"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             AllowDrop="True"
+             DragEnter="DropZone_DragEnter"
+             DragLeave="DropZone_DragLeave"
+             Drop="DropZone_Drop">
+    <Border x:Name="DropAreaBorder"
+             Style="{DynamicResource DropAreaCardStyle}"
+             Padding="{Binding DropPadding, RelativeSource={RelativeSource AncestorType=UserControl}}"
+             MinWidth="{Binding DropMinWidth, RelativeSource={RelativeSource AncestorType=UserControl}}"
+             MinHeight="{Binding DropMinHeight, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <StackPanel VerticalAlignment="Center"
+                    HorizontalAlignment="Center">
+            <ui:SymbolIcon x:Name="DropIcon"
+                            Symbol="{Binding DropIconSymbol, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            FontSize="{Binding DropIconFontSize, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,16"/>
+
+            <TextBlock x:Name="DropTextBlock"
+                       Text="{Binding DropText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,8"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"/>
+
+            <TextBlock x:Name="FormatsTextBlock"
+                       Text="{Binding AcceptedFormatsText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontSize="12"
+                       Opacity="0.7"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,20"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"/>
+
+            <ui:Button Appearance="Secondary"
+                        Content="{Binding SelectFilesText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       HorizontalAlignment="Center"
+                       Click="SelectFilesButton_Click"/>
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -1,0 +1,26 @@
+<Window x:Class="NoCloudware.UI.Core.Controls.ShellWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:NoCloudware.UI.Core.Controls"
+        Title="{Binding Title, RelativeSource={RelativeSource Self}}"
+        Height="{Binding WindowHeight, RelativeSource={RelativeSource Self}}"
+        Width="{Binding WindowWidth, RelativeSource={RelativeSource Self}}"
+        MinHeight="{Binding WindowMinHeight, RelativeSource={RelativeSource Self}}"
+        MinWidth="{Binding WindowMinWidth, RelativeSource={RelativeSource Self}}"
+        Icon="{Binding WindowIcon, RelativeSource={RelativeSource Self}}"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        AllowsTransparency="False">
+
+    <controls:BaseMainControl x:Name="MainShell"
+                              HeaderDrag="OnShellHeaderDrag"
+                              DropText="{Binding DropText, RelativeSource={RelativeSource AncestorType=Window}}"
+                              AcceptedFormatsText="{Binding AcceptedFormatsText, RelativeSource={RelativeSource AncestorType=Window}}"
+                              ActionButtonText="{Binding ActionButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                              AboutButtonText="{Binding AboutButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                              DonateButtonText="{Binding DonateButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                              ExitButtonText="{Binding ExitButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                              FileListHeader="{Binding FileListHeader, RelativeSource={RelativeSource AncestorType=Window}}"
+                              OutputFolderText="{Binding OutputFolderText, RelativeSource={RelativeSource AncestorType=Window}}"
+                              FilesDropped="OnShellFilesDropped"/>
+</Window>
