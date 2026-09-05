@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using ClasificadorIA.Services;
 using NoCloudware.UI.Core.Controls;
 
 namespace ClasificadorIA;
@@ -12,6 +13,13 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        if (e.Args.Contains("--selftest"))
+        {
+            Shutdown(SelfTest.Run() ? 0 : 1);
+            return;
+        }
+
         _window = new ShellWindow
         {
             Title = "Clasificador IA",
