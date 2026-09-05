@@ -20,6 +20,8 @@ public static class SelfTest
         RunFileFilters();
         RunTranslations();
         RunClassificationModes();
+        RunByokConfigStore();
+        RunAiClientOffline();
         RunFileListCustomContent();
 
         if (Failures.Count == 0)
@@ -162,6 +164,140 @@ public static class SelfTest
         Assert("Reverse Gerne→Género", ClassificationModes.GetCriterionKey("Genre", Idioma.Inglés) == "Género");
         Assert("Find inexistente", ClassificationModes.Find("nope") is null);
         Assert("Criterios traducidos", ClassificationModes.GetCriteria(musica!, Idioma.Inglés)[0] == "Genre");
+    }
+
+    // ── BYOK store ────────────────────────────────────────────────────
+
+    private static void RunByokConfigStore()
+    {
+        string tempPath = Path.Combine(Path.GetTempPath(), "clasificador-byok-" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            var store = new ByokConfigStore(tempPath);
+
+            var fresh = store.Load();
+            Assert("Store default: 7 presets", fresh.Providers.Count == 7, $"got {fresh.Providers.Count}");
+            Assert("Store default: activo openai", fresh.ActiveProviderId == "openai");
+            Assert("Store default: ollama sin key requerida", !fresh.Providers.First(p => p.Id == "ollama").RequiresApiKey);
+
+            fresh.Providers.Add(new AiProvider { Id = "custom-1", Name = "Mi API", BaseUrl = "https://x.example/v1", Models = { "m1" } });
+            fresh.ActiveProviderId = "custom-1";
+            store.Save(fresh);
+
+            var reloaded = new ByokConfigStore(tempPath).Load();
+            Assert("Store roundtrip: 8 providers", reloaded.Providers.Count == 8, $"got {reloaded.Providers.Count}");
+            Assert("Store roundtrip: custom persistido", reloaded.ActiveProviderId == "custom-1");
+            Assert("Store roundtrip: activo resuelto", reloaded.ActiveProvider?.Name == "Mi API");
+
+            File.WriteAllText(tempPath, "{no-json}");
+            var corrupt = new ByokConfigStore(tempPath).Load();
+            Assert("Store corrupto: presets", corrupt.Providers.Count == 7);
+        }
+        finally
+        {
+            try { File.Delete(tempPath); } catch { }
+        }
+    }
+
+    // ── AiClient offline ───────────────────────────────────────────────
+
+    private static void RunAiClientOffline()
+    {
+        var client = new AiClient();
+        var presets = AiProvider.DefaultPresets();
+        var openai = presets.First(p => p.Id == "openai");
+        var anthropic = presets.First(p => p.Id == "claude");
+        var gemini = presets.First(p => p.Id == "gemini");
+        var ollama = presets.First(p => p.Id == "ollama");
+        openai.SelectedModel = "gpt-4o-mini";
+        anthropic.SelectedModel = "claude-sonnet-4-5";
+        gemini.SelectedModel = "gemini-2.5-flash";
+        ollama.SelectedModel = "llama3.2";
+        openai.ApiKey = "sk-test";
+        anthropic.ApiKey = "ak-test";
+        gemini.ApiKey = "gk-test";
+
+        // Payloads
+        var openAiPayload = client.BuildPayload(openai, "hola");
+        Assert("Payload openai: response_format", openAiPayload.Contains("\"response_format\"") && openAiPayload.Contains("json_object"));
+        Assert("Payload openai: modelo", openAiPayload.Contains("gpt-4o-mini"));
+
+        var anthropicPayload = client.BuildPayload(anthropic, "hola");
+        Assert("Payload anthropic: max_tokens", anthropicPayload.Contains("max_tokens"));
+        Assert("Payload anthropic: sin response_format", !anthropicPayload.Contains("response_format"));
+
+        var geminiPayload = client.BuildPayload(gemini, "hola");
+        Assert("Payload gemini: responseMimeType", geminiPayload.Contains("responseMimeType") && geminiPayload.Contains("application/json"));
+
+        var ollamaPayload = client.BuildPayload(ollama, "hola");
+        Assert("Payload ollama: sin response_format (JsonMode=false)", !ollamaPayload.Contains("response_format"));
+
+        // Headers / URLs
+        var anthropicReq = client.BuildChatRequest(anthropic, "claude-sonnet-4-5", "hola");
+        Assert("Header anthropic x-api-key", anthropicReq.Headers.Contains("x-api-key") && anthropicReq.Headers.GetValues("x-api-key").First() == "ak-test");
+        Assert("Header anthropic version", anthropicReq.Headers.Contains("anthropic-version"));
+
+        var geminiReq = client.BuildChatRequest(gemini, "gemini-2.5-flash", "hola");
+        Assert("Header gemini x-goog-api-key", geminiReq.Headers.Contains("x-goog-api-key"));
+        Assert("URL gemini :generateContent", geminiReq.RequestUri!.AbsoluteUri.Contains(":generateContent"));
+
+        var openAiReq = client.BuildChatRequest(openai, "gpt-4o-mini", "hola");
+        Assert("Header openai Bearer", openAiReq.Headers.GetValues("Authorization").First() == "Bearer sk-test");
+
+        Assert("URL ollama tags", client.BuildListModelsUrl(ollama).AbsoluteUri == "http://localhost:11434/api/tags");
+        Assert("URL openai models", client.BuildListModelsUrl(openai).AbsoluteUri == "https://api.openai.com/v1/models");
+        Assert("URL gemini models", client.BuildListModelsUrl(gemini).AbsoluteUri == "https://generativelanguage.googleapis.com/v1beta/models");
+
+        // Extracción
+        string openAiText = client.ExtractResponseText(openai, """{"choices":[{"message":{"content":"{\"categorias\":{}}"}}]}""");
+        Assert("Extract openai text", openAiText == """{"categorias":{}}""");
+
+        string anthropicText = client.ExtractResponseText(anthropic, """{"content":[{"type":"text","text":"hola claude"}]}""");
+        Assert("Extract anthropic text", anthropicText == "hola claude");
+
+        string geminiText = client.ExtractResponseText(gemini, """{"candidates":[{"content":{"parts":[{"text":"hola gemini"}]}}]}""");
+        Assert("Extract gemini text", geminiText == "hola gemini");
+
+        Assert("Extract error gemini", ThrowsAi(gemini, """{"error":{"code":429,"message":"Quota","status":"RESOURCE_EXHAUSTED"}}""", 429, "RESOURCE_EXHAUSTED"));
+        Assert("Extract error openai", ThrowsAi(openai, """{"error":{"message":"Incorrect key","code":"invalid_api_key"}}""", 0, "invalid_api_key"));
+        Assert("Extract error anthropic", ThrowsAi(anthropic, """{"type":"error","error":{"type":"authentication_error","message":"invalid key","status_code":401}}""", 401, "authentication_error"));
+
+        // Modelos
+        Assert("Modelo usa SelectedModel", client.GetSelectedModel(openai) == "gpt-4o-mini");
+        openai.SelectedModel = "";
+        Assert("Modelo fallback primer preset", client.GetSelectedModel(openai) == "gpt-4o-mini");
+        var vacio = new AiProvider { BaseUrl = "https://x.example/v1" };
+        Assert("Modelo ausente lanza no_model", Throws(() => client.GetSelectedModel(vacio), 0, "no_model"));
+
+        // Errores tempranos
+        var deepseek = presets.First(p => p.Id == "deepseek");
+        Assert("Key requerida openai", Throws(() => client.BuildChatRequest(deepseek, "m", "p"), 0, "missing_key"));
+    }
+
+    private static bool ThrowsAi(AiProvider p, string json, int statusCode, string errorCode)
+    {
+        try
+        {
+            new AiClient().ExtractResponseText(p, json);
+            return false;
+        }
+        catch (AiException ex)
+        {
+            return ex.StatusCode == statusCode && ex.ErrorCode == errorCode;
+        }
+    }
+
+    private static bool Throws(Func<object> action, int statusCode, string errorCode)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (AiException ex)
+        {
+            return ex.StatusCode == statusCode && ex.ErrorCode == errorCode;
+        }
     }
 
     // ── DP FileListCustomContent (STA) ─────────────────────────────────
