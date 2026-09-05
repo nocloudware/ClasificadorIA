@@ -82,6 +82,10 @@
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"
                                    IsHitTestVisible="False"/>
+                        <ContentControl x:Name="FileListCustomPanel"
+                                        Visibility="Collapsed"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch"/>
                     </Grid>
 
                     <!-- Select files button -->

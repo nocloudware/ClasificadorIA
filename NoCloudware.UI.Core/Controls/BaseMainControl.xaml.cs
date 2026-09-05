@@ -118,6 +118,10 @@ public partial class BaseMainControl : UserControl
         DependencyProperty.Register(nameof(FileCountFormat), typeof(string), typeof(BaseMainControl),
             new PropertyMetadata("({0})"));
 
+    public static readonly DependencyProperty FileListCustomContentProperty =
+        DependencyProperty.Register(nameof(FileListCustomContent), typeof(object), typeof(BaseMainControl),
+            new PropertyMetadata(null, OnFileListCustomContentChanged));
+
     // ── Banner DPs ────────────────────────────────────────────────────
 
     public static readonly DependencyProperty BannerBitmapProperty =
@@ -407,6 +411,12 @@ public partial class BaseMainControl : UserControl
         set => SetValue(FileCountFormatProperty, value);
     }
 
+    public object? FileListCustomContent
+    {
+        get => GetValue(FileListCustomContentProperty);
+        set => SetValue(FileListCustomContentProperty, value);
+    }
+
     // ── Banner properties ─────────────────────────────────────────────
 
     public ImageSource? BannerBitmap
@@ -509,6 +519,22 @@ public partial class BaseMainControl : UserControl
     {
         if (d is BaseMainControl c)
             c.UpdateHeader();
+    }
+
+    private static void OnFileListCustomContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is BaseMainControl c)
+            c.UpdateFileListCustomContent();
+    }
+
+    private void UpdateFileListCustomContent()
+    {
+        var hasCustom = FileListCustomContent != null;
+        if (FileListCustomPanel != null)
+            FileListCustomPanel.Visibility = hasCustom ? Visibility.Visible : Visibility.Collapsed;
+        if (FileList != null)
+            FileList.Visibility = hasCustom ? Visibility.Collapsed : Visibility.Visible;
+        UpdateCounters();
     }
 
     // ── Event handlers ────────────────────────────────────────────────
@@ -659,6 +685,6 @@ public partial class BaseMainControl : UserControl
         StatusBarControl.ErrorCount = errors;
 
         FileCountText.Text = total > 0 ? string.Format(FileCountFormat, total) : "";
-        EmptyListText.Visibility = total > 0 ? Visibility.Collapsed : Visibility.Visible;
+        EmptyListText.Visibility = total > 0 || FileListCustomContent != null ? Visibility.Collapsed : Visibility.Visible;
     }
 }
