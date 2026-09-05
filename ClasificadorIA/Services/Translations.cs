@@ -4,7 +4,22 @@ namespace ClasificadorIA.Services;
 
 public static class Translations
 {
-    public static Idioma Current { get; set; } = Idioma.Español;
+    private static Idioma _current = Idioma.Español;
+
+    public static Idioma Current
+    {
+        get => _current;
+        set
+        {
+            if (_current != value)
+            {
+                _current = value;
+                LanguageChanged?.Invoke(null, EventArgs.Empty);
+            }
+        }
+    }
+
+    public static event EventHandler? LanguageChanged;
 
     private static readonly Dictionary<string, (string Es, string En)> Map = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -42,6 +57,8 @@ public static class Translations
         ["PasteResponse"] = ("Pegar Respuesta", "Paste Response"),
         ["NoneInClipboard"] = ("No hay texto en portapapeles.", "No text in clipboard."),
         ["LoadResponse"] = ("Cargar", "Load"),
+        ["Classify"] = ("Clasificar", "Classify"),
+        ["Copy"] = ("Copiar", "Copy"),
         ["ResultPlaceholder"] = ("Respuesta de la IA…", "AI response…"),
         ["Classify"] = ("Clasificar", "Classify"),
         ["Byok"] = ("BYOK", "BYOK"),
@@ -82,6 +99,8 @@ public static class Translations
         ["Save"] = ("Guardar", "Save"),
         ["Delete"] = ("Eliminar", "Delete"),
         ["Remove"] = ("Eliminar", "Remove"),
+        ["OptionsPanelTitle"] = ("Opciones", "Options"),
+        ["PromptPreviewPlaceholder"] = ("Vista previa del prompt…", "Prompt preview…"),
         ["ConnectionOk"] = ("Conexión OK: {0}", "Connection OK: {0}"),
         ["ConnectionFailed"] = ("Conexión falló: {0}", "Connection failed: {0}"),
         ["ProviderNeedsKey"] = ("Proveedor {0} requiere API key.", "Provider {0} requires an API key."),
