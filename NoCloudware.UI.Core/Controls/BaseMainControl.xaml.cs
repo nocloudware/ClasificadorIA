@@ -531,7 +531,10 @@ public partial class BaseMainControl : UserControl
     {
         var hasCustom = FileListCustomContent != null;
         if (FileListCustomPanel != null)
+        {
+            FileListCustomPanel.Content = FileListCustomContent;
             FileListCustomPanel.Visibility = hasCustom ? Visibility.Visible : Visibility.Collapsed;
+        }
         if (FileList != null)
             FileList.Visibility = hasCustom ? Visibility.Collapsed : Visibility.Visible;
         UpdateCounters();
