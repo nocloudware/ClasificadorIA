@@ -7,95 +7,174 @@
         mc:Ignorable="d"
         Title="{Binding DialogTitle, RelativeSource={RelativeSource Self}}"
         Width="{Binding DialogWidth, RelativeSource={RelativeSource Self}}" Height="{Binding DialogHeight, RelativeSource={RelativeSource Self}}"
+        MinWidth="480" MinHeight="500"
         WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource WindowBackgroundBrush}"
         ResizeMode="NoResize"
         ShowInTaskbar="False"
-        Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI Variable Text, Segoe UI"
         TextOptions.TextFormattingMode="Display"
-        TextOptions.TextRenderingMode="ClearType">
+        TextOptions.TextRenderingMode="ClearType"
+        KeyDown="OnKeyDown">
 
-    <Grid Margin="24">
+    <Grid Margin="20"
+          TextOptions.TextFormattingMode="Display"
+          TextOptions.TextRenderingMode="ClearType">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" HorizontalAlignment="Center" Margin="0,0,0,20">
-            <Border x:Name="LogoBorder"
-                    Width="{Binding LogoFrameWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding LogoFrameHeight, RelativeSource={RelativeSource AncestorType=Window}}"
-                    CornerRadius="{Binding LogoCornerRadius, RelativeSource={RelativeSource AncestorType=Window}}"
-                    Background="{DynamicResource AccentBrush}"
-                    HorizontalAlignment="Center"
-                    Margin="0,0,0,12">
+        <!-- Logo y título -->
+        <Grid Grid.Row="0" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0"
+                    Width="64" Height="64"
+                    CornerRadius="12"
+                    Background="{DynamicResource SurfaceBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1"
+                    Margin="0,0,15,0">
                 <Image x:Name="LogoImage"
-                       Width="{Binding LogoImageWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding LogoImageHeight, RelativeSource={RelativeSource AncestorType=Window}}"
+                       Width="48" Height="48"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
                        RenderOptions.BitmapScalingMode="HighQuality"/>
             </Border>
-            <TextBlock x:Name="AppNameTextBlock"
-                       FontSize="20" FontWeight="Bold"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       HorizontalAlignment="Center"/>
-            <TextBlock x:Name="AppVersionTextBlock"
-                       FontSize="12"
-                       Foreground="{DynamicResource TextSecondaryBrush}"
-                       HorizontalAlignment="Center"
-                       Margin="0,4,0,0"/>
-        </StackPanel>
 
-        <!-- Separator -->
-        <Separator Grid.Row="1" Margin="0,0,0,12"
-                   VerticalAlignment="Top"
-                   Background="{DynamicResource BorderBrush}"/>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock x:Name="AppNameTextBlock"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="AppVersionTextBlock"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextSecondaryBrush}"
+                               Margin="0,2,0,0"
+                               VerticalAlignment="Center"/>
+                    <Button x:Name="CheckUpdatesButton"
+                            Content="{Binding CheckUpdatesText, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Click="CheckUpdatesButton_Click"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Foreground="{DynamicResource AccentBrush}"
+                            Cursor="Hand"
+                            Padding="8,2"
+                            Margin="8,0,0,0"
+                            FontSize="11"
+                            VerticalAlignment="Center"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
 
-        <!-- Body -->
-        <ScrollViewer Grid.Row="1"
+        <!-- Separador -->
+        <Separator Grid.Row="1"
+                   Background="{DynamicResource BorderBrush}"
+                   Margin="0,0,0,15"/>
+
+        <!-- Créditos (scrollable) -->
+        <ScrollViewer Grid.Row="2"
                       VerticalScrollBarVisibility="Auto"
-                      Margin="0,4,0,0">
+                      HorizontalScrollBarVisibility="Disabled"
+                      Margin="0,0,0,15">
             <StackPanel>
-                <TextBlock x:Name="CopyrightTextBlock"
+
+                <TextBlock x:Name="CreditsHeaderTextBlock"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           FontSize="14"
+                           Margin="0,0,0,8"/>
+
+                <TextBlock x:Name="DevelopedByTextBlock"
                            FontSize="11"
                            Foreground="{DynamicResource TextSecondaryBrush}"
-                           TextWrapping="Wrap"
-                           Margin="0,0,0,16"/>
+                           Margin="0,0,0,4"/>
 
-                <TextBlock Text="{Binding ThirdPartyHeader, RelativeSource={RelativeSource AncestorType=Window}}"
-                           FontSize="13" FontWeight="SemiBold"
+                <TextBlock FontSize="12"
+                           FontWeight="SemiBold"
                            Foreground="{DynamicResource TextPrimaryBrush}"
-                           Margin="0,0,0,8"/>
-                <Border Background="{DynamicResource SurfaceBrush}"
-                        CornerRadius="8"
-                        BorderBrush="{DynamicResource BorderBrush}"
-                        BorderThickness="1"
-                        Padding="12"
-                        MaxHeight="220">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <TextBlock x:Name="LicensesTextBlock"
-                                   FontSize="10"
-                                   FontFamily="Consolas, Courier New"
-                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                   TextWrapping="Wrap"/>
-                    </ScrollViewer>
-                </Border>
+                           Margin="0,0,0,12">
+                    <Hyperlink x:Name="DeveloperHyperlink"
+                               RequestNavigate="OnHyperlinkRequestNavigate"/>
+                </TextBlock>
+
+                <TextBlock x:Name="ThirdPartyLibrariesTextBlock"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,0,0,4"/>
+
+                <TextBlock FontSize="12"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,12"
+                           TextWrapping="Wrap">
+                    <Hyperlink RequestNavigate="OnHyperlinkRequestNavigate"
+                               NavigateUri="https://github.com/lepoco/wpfui">
+                        WPF-UI
+                    </Hyperlink>
+                    <Run Text=" - "/>
+                    <Run x:Name="WpfUiDescTextBlock" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </TextBlock>
+
+                <TextBlock FontSize="12"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,12"
+                           TextWrapping="Wrap">
+                    <Hyperlink RequestNavigate="OnHyperlinkRequestNavigate"
+                               NavigateUri="https://github.com/CommunityToolkit/dotnet">
+                        CommunityToolkit.Mvvm
+                    </Hyperlink>
+                    <Run Text=" - "/>
+                    <Run x:Name="MvvmDescTextBlock" FontSize="12" Foreground="{DynamicResource TextSecondaryBrush}"/>
+                </TextBlock>
+
+                <TextBlock x:Name="SpecialThanksTextBlock"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,0,0,4"/>
+
+                <TextBlock x:Name="SpecialThanksMessageTextBlock"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           TextWrapping="Wrap"
+                           Margin="0,0,0,12"/>
+
+                <TextBlock x:Name="TechnologiesUsedTextBlock"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,0,0,4"/>
+
+                <TextBlock x:Name="TechListTextBlock"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,12"/>
+
+                <TextBlock x:Name="LicenseTextBlock"
+                           FontSize="11"
+                           Foreground="{DynamicResource TextSecondaryBrush}"
+                           Margin="0,0,0,4"/>
+
+                <TextBlock x:Name="LicenseInfoTextBlock"
+                           FontSize="12"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Margin="0,0,0,4"/>
+
             </StackPanel>
         </ScrollViewer>
 
-        <!-- Footer -->
-        <StackPanel Grid.Row="2"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right"
-                    Margin="0,12,0,0">
-            <Button x:Name="CheckUpdatesButton"
-                    Content="{Binding CheckUpdatesText, RelativeSource={RelativeSource AncestorType=Window}}"
-                    Style="{DynamicResource SecondaryButtonStyle}"
-                    Margin="0,0,8,0"
-                    Click="CheckUpdatesButton_Click"/>
-            <Button x:Name="CloseButton"
-                    Content="{Binding CloseButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
-                    Style="{DynamicResource PrimaryButtonStyle}"
-                    Click="CloseButton_Click"/>
-        </StackPanel>
+        <!-- Botón Cerrar -->
+        <Button Grid.Row="3"
+                Content="{Binding CloseButtonText, RelativeSource={RelativeSource AncestorType=Window}}"
+                Click="CloseButton_Click"
+                HorizontalAlignment="Right"
+                Padding="20,8"
+                FontSize="12"
+                Style="{DynamicResource PrimaryButtonStyle}"/>
     </Grid>
 </Window>

@@ -3,6 +3,7 @@
 
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="AetherButtons.xaml"/>
+        <ResourceDictionary Source="AetherAppControls.xaml"/>
         <ResourceDictionary Source="AetherWindow.xaml"/>
         <ResourceDictionary Source="AetherTypography.xaml"/>
         <ResourceDictionary Source="AetherDropZone.xaml"/>

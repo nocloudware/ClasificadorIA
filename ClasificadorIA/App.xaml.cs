@@ -617,33 +617,58 @@ public partial class App : System.Windows.Application
 
     private void ShowAboutDialog()
     {
-        var version = System.Reflection.Assembly.GetExecutingAssembly()?.GetName().Version;
+        var ci = Translations.Current;
+        var assemblyVer = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
+        var appVersion = assemblyVer != null
+            ? $"{assemblyVer.Major}.{assemblyVer.Minor}.{assemblyVer.Build}"
+            : "1.0.0";
+
+        var wpfUiVersion = GetAssemblyVersion("Wpf.Ui");
+        var mvvmVersion = GetAssemblyVersion("CommunityToolkit.Mvvm");
+
         var about = new AboutDialog
         {
-            AppName = Translations.Get("AppTitle"),
-            AppVersion = $"v{version?.Major}.{version?.Minor}.{version?.Build ?? 0}",
+            AppName = Translations.Get("AppTitle", ci),
+            AppVersion = $"{Translations.Get("AboutVersion", ci)} v{appVersion}",
             AppLogo = LoadIcon(),
-            AppCopyright = "Clasificador IA",
-            DialogTitle = Translations.Get("AboutButton"),
-            ThirdPartyHeader = "Licenses",
-            ThirdPartyLicenses = LoadThirdPartyNotices(),
-            CheckUpdatesText = Translations.Get("AboutButton"),
-            CloseButtonText = Translations.Get("CloseBtn", Translations.Current),
+            DialogTitle = Translations.Get("AboutTitle", ci),
+            CreditsHeader = Translations.Get("AboutCredits", ci),
+            DevelopedByText = Translations.Get("AboutDevelopedBy", ci),
+            DeveloperName = Translations.Get("AboutDeveloperName", ci),
+            DeveloperUrl = "https://www.nocloudware.com",
+            ThirdPartyLibrariesText = Translations.Get("AboutThirdPartyLibraries", ci),
+            WpfUiDesc = Translations.Get("AboutWpfUiDesc", ci) + (wpfUiVersion != null ? $" (v{wpfUiVersion})" : ""),
+            MvvmDesc = Translations.Get("AboutMvvmDesc", ci) + (mvvmVersion != null ? $" (v{mvvmVersion})" : ""),
+            SpecialThanksText = Translations.Get("AboutSpecialThanks", ci),
+            SpecialThanksMessage = Translations.Get("AboutSpecialThanksMessage", ci),
+            TechnologiesUsedText = Translations.Get("AboutTechnologiesUsed", ci),
+            TechList = Translations.Get("AboutTechList", ci),
+            LicenseText = Translations.Get("AboutLicense", ci),
+            LicenseInfo = Translations.Get("AboutLicenseInfo", ci),
+            CheckUpdatesText = Translations.Get("CheckUpdatesBtn", ci),
+            CloseButtonText = Translations.Get("CloseBtn", ci),
             Owner = _window
         };
         about.CheckUpdatesClick += (_, _) =>
         {
-            MessageBox.Show(Translations.Get("AppUpToDate"), Translations.Get("AboutButton"),
+            MessageBox.Show(Translations.Get("AppUpToDate"), Translations.Get("AboutTitle", ci),
                 MessageBoxButton.OK, MessageBoxImage.Information);
         };
         about.ShowDialog();
     }
 
-    private string LoadThirdPartyNotices()
+    private static string? GetAssemblyVersion(string assemblyName)
     {
-        string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "THIRD_PARTY_NOTICES.txt");
-        try { return File.Exists(path) ? File.ReadAllText(path) : ""; }
-        catch { return ""; }
+        try
+        {
+            var asm = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == assemblyName);
+            asm ??= System.Reflection.Assembly.Load(assemblyName);
+            var v = asm.GetName().Version;
+            if (v == null) return null;
+            return v.Build != 0 ? $"{v.Major}.{v.Minor}.{v.Build}" : $"{v.Major}.{v.Minor}";
+        }
+        catch { return null; }
     }
 
     // ── Estado ────────────────────────────────────────────────────────
