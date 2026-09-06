@@ -40,8 +40,8 @@
         <!-- ── Main content ── -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" MinWidth="400"/>
-                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="480"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
             <!-- Left: File list (unified drop zone, like TurnAFile) + output folder -->

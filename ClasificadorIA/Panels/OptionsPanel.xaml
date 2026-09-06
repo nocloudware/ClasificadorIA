@@ -83,7 +83,7 @@
                           Style="{DynamicResource ThemedComboBoxStyle}"
                           Margin="0,4,0,6"/>
 
-                <!-- 4. Prompt -->
+                <!-- 4. Prompt (in memory, never shown on screen) -->
                 <TextBlock x:Name="PromptSectionLabel"
                            Style="{DynamicResource AetherCaptionStyle}"
                            Margin="0,8,0,0"/>
@@ -96,14 +96,6 @@
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Padding="10,3"/>
                 </StackPanel>
-                <TextBox x:Name="PromptPreviewBox"
-                         Style="{DynamicResource AetherTextBoxStyle}"
-                         IsReadOnly="True"
-                         AcceptsReturn="True"
-                         MinHeight="80"
-                         MaxHeight="140"
-                         TextWrapping="Wrap"
-                         Margin="0,6,0,6"/>
 
                 <!-- 5. Respuesta de la IA -->
                 <TextBlock x:Name="ResponseSectionLabel"

@@ -26,6 +26,7 @@ public partial class App : System.Windows.Application
 
     private string _sourceFolder = "";
     private List<ClassificationResult> _results = new();
+    private string _currentPrompt = "";
     private CancellationTokenSource? _organizeCts;
     private bool _organizing;
     private int _organizeTotal;
@@ -306,15 +307,14 @@ public partial class App : System.Windows.Application
     {
         var (mode, criterion, depth) = GetOptions();
         var files = GetFileNames();
-        if (_options == null) return;
-        _options.PromptPreviewBox.Text = files.Length > 0
+        _currentPrompt = files.Length > 0
             ? PromptGenerator.Generate(mode, criterion, depth, Translations.Current, files)
             : "";
     }
 
     private void CopyPrompt()
     {
-        if (string.IsNullOrEmpty(_options?.PromptPreviewBox.Text))
+        if (string.IsNullOrEmpty(_currentPrompt))
         {
             MessageBox.Show(Translations.Get("PromptEmpty"), Translations.Get("Error"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -322,7 +322,7 @@ public partial class App : System.Windows.Application
         }
         try
         {
-            Clipboard.SetText(_options.PromptPreviewBox.Text);
+            Clipboard.SetText(_currentPrompt);
             ShowStatus(Translations.Get("PromptCopied"));
         }
         catch { }
