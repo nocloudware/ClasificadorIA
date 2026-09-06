@@ -24,7 +24,6 @@ public partial class App : System.Windows.Application
     private readonly ByokConfig _byok = new();
     private readonly AiClient _aiClient = new();
 
-    private string _sourceFolder = "";
     private List<ClassificationResult> _results = new();
     private string _currentPrompt = "";
     private CancellationTokenSource? _organizeCts;
@@ -151,7 +150,7 @@ public partial class App : System.Windows.Application
         _window.FileListBox.ClearAllMenuItemText = Translations.Get("ClearAll");
 
         if (string.IsNullOrEmpty(_window.MainControl.OutputFolderText) ||
-            _window.MainControl.OutputFolderText == (t == Idioma.Inglés ? "Same folder as source" : "Misma carpeta que el origen"))
+            _window.MainControl.OutputFolderText == Translations.Get("OutputFolderDefault", t))
             _window.MainControl.OutputFolderText = Translations.Get("OutputFolderDefault");
 
         if (_organizing)
@@ -214,7 +213,7 @@ public partial class App : System.Windows.Application
         _options.ResponseBox.TextChanged += (_, _) => _results = new();
     }
 
-    // ── Archivos y carpeta de origen ──────────────────────────────────
+    // ── Archivos ──────────────────────────────────────────────────────
 
     private void AddFiles(IEnumerable<string> paths)
     {
@@ -229,7 +228,6 @@ public partial class App : System.Windows.Application
                 FileSize = new FileInfo(path).Length
             });
         }
-        RefreshSourceFolder();
         ResetResults();
         _window!.MainControl.UpdateCounters();
         RegeneratePrompt();
@@ -249,45 +247,10 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        _sourceFolder = dialog.FolderName;
-        _window!.Files.Clear();
-        foreach (var file in Directory.GetFiles(_sourceFolder))
-        {
-            string name = Path.GetFileName(file);
-            if (FileFilters.IsSystemFile(name)) continue;
-            _window.Files.Add(new BaseFileItem { FilePath = file, FileName = name, FileSize = new FileInfo(file).Length });
-        }
-
-        if (_window.Files.Count == 0)
-        {
-            MessageBox.Show(Translations.Get("NoFilesToClassify"), Translations.Get("Error"),
-                MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
-        if (IsDefaultOutput())
-            _window.MainControl.OutputFolderText = _sourceFolder;
-        ResetResults();
-        _window.MainControl.UpdateCounters();
-        RegeneratePrompt();
-    }
-
-    private void RefreshSourceFolder()
-    {
-        var dirs = _window!.Files.Select(f => Path.GetDirectoryName(f.FilePath))
-            .Where(d => !string.IsNullOrEmpty(d))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        _sourceFolder = dirs.Count == 1 ? dirs[0]! : "";
-        if (dirs.Count == 1 && IsDefaultOutput())
-            _window.MainControl.OutputFolderText = _sourceFolder;
-    }
-
-    private bool IsDefaultOutput()
-    {
-        var t = _window!.MainControl.OutputFolderText;
-        return string.IsNullOrEmpty(t) ||
-               t == "Misma carpeta que el origen" ||
-               t == "Same folder as source";
+        var added = Directory.GetFiles(dialog.FolderName)
+            .Where(f => !FileFilters.IsSystemFile(Path.GetFileName(f)))
+            .ToArray();
+        AddFiles(added);
     }
 
     // ── Prompt ────────────────────────────────────────────────────────
@@ -496,14 +459,15 @@ public partial class App : System.Windows.Application
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        if (string.IsNullOrEmpty(_sourceFolder) || !Directory.Exists(_sourceFolder))
+
+        string output = _window!.MainControl.OutputFolderText;
+        if (string.IsNullOrEmpty(output) || output == Translations.Get("OutputFolderDefault"))
         {
-            MessageBox.Show(Translations.Get("NoSourceFolder"), Translations.Get("Error"),
+            MessageBox.Show(Translations.Get("ChooseOutputFolder"), Translations.Get("Error"),
                 MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
 
-        string output = IsDefaultOutput() ? _sourceFolder : _window!.MainControl.OutputFolderText;
         bool copy = _options!.CopyRadio.IsChecked == true;
         int total = _results.Sum(r => r.Files.Count);
 
@@ -518,6 +482,21 @@ public partial class App : System.Windows.Application
         _organizeCts = cts;
         int processed = 0, errors = 0;
 
+        var dupes = _window.Files.GroupBy(f => f.FileName, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+        if (dupes.Count > 0)
+        {
+            MessageBox.Show(
+                string.Format(Translations.Get("DuplicateFileNames"), string.Join(", ", dupes)),
+                Translations.Get("Error"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        var filePaths = _window.Files
+            .ToDictionary(f => f.FileName, f => f.FilePath, StringComparer.OrdinalIgnoreCase);
+
         foreach (var item in _window.Files)
             item.Status = FileStatus.Queued;
         _window.MainControl.UpdateCounters();
@@ -525,7 +504,7 @@ public partial class App : System.Windows.Application
         try
         {
             await Task.Run(() => FileOrganizer.Organize(
-                _sourceFolder, output, _results, copy, cts.Token,
+                filePaths, output, _results, copy, cts.Token,
                 onProgress: (p, er) =>
                 {
                     processed = p; errors = er;

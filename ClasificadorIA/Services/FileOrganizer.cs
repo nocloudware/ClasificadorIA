@@ -14,12 +14,10 @@ public static class FileOrganizer
     }
 
     public static OrganizeResult Organize(
-        string sourceDir, string destDir, IReadOnlyList<ClassificationResult> results,
+        IReadOnlyDictionary<string, string> filePaths, string destDir, IReadOnlyList<ClassificationResult> results,
         bool copy, CancellationToken ct, Action<int, int>? onProgress = null,
         Action<string, bool>? onFile = null)
     {
-        if (string.IsNullOrEmpty(sourceDir) || !Directory.Exists(sourceDir))
-            throw new DirectoryNotFoundException($"Carpeta origen no existe: {sourceDir}");
         Directory.CreateDirectory(destDir);
 
         int total = results.Sum(r => r.Files.Count);
@@ -41,7 +39,7 @@ public static class FileOrganizer
                 bool ok = false;
                 try
                 {
-                    string src = Path.Combine(sourceDir, file);
+                    string src = filePaths.TryGetValue(file, out var full) ? full : file;
                     string dest = Path.Combine(dir, file);
                     if (File.Exists(src))
                     {

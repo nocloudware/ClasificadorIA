@@ -35,8 +35,9 @@ public static class Translations
         ["ExitButton"] = ("Salir", "Exit"),
         ["SelectFilesBtn"] = ("Seleccionar archivos", "Select files"),
         ["ChangeBtn"] = ("Cambiar", "Change"),
+        ["AddFolder"] = ("Agregar carpeta", "Add folder"),
         ["OutputFolder"] = ("Carpeta de destino", "Destination folder"),
-        ["OutputFolderDefault"] = ("Misma carpeta que el origen", "Same folder as source"),
+        ["OutputFolderDefault"] = ("Elegir la carpeta de salida", "Choose the output folder"),
         // Options panel
         ["SourceFolder"] = ("Carpeta de origen", "Source folder"),
         ["Browse"] = ("Examinar", "Browse"),
@@ -95,7 +96,8 @@ public static class Translations
         ["MissingFilesTitle"] = ("Archivos no encontrados", "Files not found"),
         ["FilesOrganized"] = ("✓ Organización completada", "✓ Organizing completed"),
         ["NoResultsToOrganize"] = ("Clasifica primero los archivos.", "Classify the files first."),
-        ["NoSourceFolder"] = ("Selecciona una carpeta de origen.", "Select a source folder."),
+        ["ChooseOutputFolder"] = ("Elige la carpeta de salida con el botón Cambiar del panel izquierdo.", "Choose the output folder with the Change button on the left panel."),
+        ["DuplicateFileNames"] = ("Existen archivos con el mismo nombre de distintas carpetas: {0}. Clasifícalos por separado.", "Files with the same name exist from different folders: {0}. Classify them separately."),
         // Errors
         ["ErrorIn"] = ("Error en", "Error in"),
         ["Error"] = ("Error", "Error"),

@@ -30,7 +30,7 @@ public partial class OptionsPanel : UserControl
         PanelTitleText.Text = Translations.Get("OptionsPanelTitle");
         PanelSubtitleText.Text = Translations.Get("AppTagline");
         SourceFolderLabel.Text = Translations.Get("SourceFolder");
-        ChangeBtn.Content = Translations.Get("Browse");
+        ChangeBtn.Content = Translations.Get("AddFolder");
         MethodLabel.Text = Translations.Get("Method");
         MethodManual.Content = Translations.Get("ManualMode");
         MethodAuto.Content = Translations.Get("AutoMode");

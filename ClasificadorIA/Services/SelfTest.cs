@@ -112,17 +112,23 @@ public static class SelfTest
             new("Vacía", Array.Empty<string>())
         };
 
-        var copyResult = FileOrganizer.Organize(src, dest, results, copy: true, CancellationToken.None);
+        var paths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["a.txt"] = Path.Combine(src, "a.txt"),
+            ["b.log"] = Path.Combine(src, "b.log")
+        };
+
+        var copyResult = FileOrganizer.Organize(paths, dest, results, copy: true, CancellationToken.None);
         Assert("Organizar copia 2", copyResult.Processed == 2 && copyResult.Errors == 0, $"{copyResult.Processed}/{copyResult.Errors}");
         Assert("Copia genera subcarpetas saneadas", File.Exists(Path.Combine(dest, "Rock_Topic", "a.txt")));
         Assert("Copia conserva origen", File.Exists(Path.Combine(src, "a.txt")));
 
-        var moveResult = FileOrganizer.Organize(src, dest, new[] { new ClassificationResult("Movidos", new[] { "a.txt" }) }, copy: false, CancellationToken.None);
+        var moveResult = FileOrganizer.Organize(paths, dest, new[] { new ClassificationResult("Movidos", new[] { "a.txt" }) }, copy: false, CancellationToken.None);
         Assert("Mover procesa", moveResult.Processed == 1);
         Assert("Mover borra origen", !File.Exists(Path.Combine(src, "a.txt")));
 
         int reports = 0;
-        FileOrganizer.Organize(src, dest, new[] { new ClassificationResult("X", new[] { "b.log" }) }, true, CancellationToken.None, (_, _) => reports++);
+        FileOrganizer.Organize(paths, dest, new[] { new ClassificationResult("X", new[] { "b.log" }) }, true, CancellationToken.None, (_, _) => reports++);
         Assert("onProgress se invoca", reports > 0);
 
         Assert("Saneate carpeta null", FileOrganizer.SaneateFolderName(null!) == "SinCategoria");
@@ -349,7 +355,13 @@ public static class SelfTest
             Assert("E2E: archivos casados", results.Sum(r => r.Files.Count) == 4);
 
             string dest = Path.Combine(root, "out");
-            var result = FileOrganizer.Organize(root, dest, results, copy: false, CancellationToken.None);
+            Directory.CreateDirectory(Path.Combine(root, "otra_carpeta"));
+            File.WriteAllText(Path.Combine(root, "otra_carpeta", "extra1.mp3"), "x");
+            var filePaths = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var n in names.Where(n => !FileFilters.IsSystemFile(n)))
+                filePaths[n] = Path.Combine(root, n);
+            filePaths["extra1.mp3"] = Path.Combine(root, "otra_carpeta", "extra1.mp3");
+            var result = FileOrganizer.Organize(filePaths, dest, results, copy: false, CancellationToken.None);
             Assert("E2E: organizados", result.Processed == 4 && result.Errors == 0, $"p{result.Processed} e{result.Errors}");
             Assert("E2E: carpeta Rock", Directory.Exists(Path.Combine(dest, "Rock")) && File.Exists(Path.Combine(dest, "Rock", "cancion1.mp3")));
             Assert("E2E: carpeta Papeles", Directory.Exists(Path.Combine(dest, "Papeles")) && File.Exists(Path.Combine(dest, "Papeles", "foto1.jpg")));
