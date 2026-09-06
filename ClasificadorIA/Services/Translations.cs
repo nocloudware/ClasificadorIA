@@ -98,6 +98,11 @@ public static class Translations
         ["NoResultsToOrganize"] = ("Clasifica primero los archivos.", "Classify the files first."),
         ["ChooseOutputFolder"] = ("Elige la carpeta de salida con el botón Cambiar del panel izquierdo.", "Choose the output folder with the Change button on the left panel."),
         ["DuplicateFileNames"] = ("Existen archivos con el mismo nombre de distintas carpetas: {0}. Clasifícalos por separado.", "Files with the same name exist from different folders: {0}. Classify them separately."),
+        // Dedup panel
+        ["DedupTitle"] = ("Eliminar duplicados", "Remove duplicates"),
+        ["DedupSameName"] = ("Mismo nombre", "Same name"),
+        ["DedupMinSize"] = ("Menor tamaño", "Smallest size"),
+        ["DedupMinDate"] = ("Menor fecha", "Oldest date"),
         // Errors
         ["ErrorIn"] = ("Error en", "Error in"),
         ["Error"] = ("Error", "Error"),

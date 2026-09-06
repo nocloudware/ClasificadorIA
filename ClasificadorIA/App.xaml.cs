@@ -30,6 +30,10 @@ public partial class App : System.Windows.Application
     private bool _organizing;
     private int _organizeTotal;
 
+    private readonly List<BaseFileItem> _masterFiles = new();
+    private readonly Dictionary<string, DateTime> _fileDates = new();
+    private DedupPanel? _dedupPanel;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -51,6 +55,8 @@ public partial class App : System.Windows.Application
         InitWindow(output);
         _options = new OptionsPanel();
         _window!.MainControl.OptionsContent.Content = _options;
+        _dedupPanel = new DedupPanel();
+        _window.MainControl.FileListFooterContent.Content = _dedupPanel;
         WireEvents();
         ApplyLanguage();
         _window!.Show();
@@ -211,25 +217,60 @@ public partial class App : System.Windows.Application
         _options.CriterionCombo.SelectionChanged += (_, _) => RegeneratePrompt();
         _options.DepthCombo.SelectionChanged += (_, _) => RegeneratePrompt();
         _options.ResponseBox.TextChanged += (_, _) => _results = new();
+
+        _dedupPanel!.SameNameCheck.Checked += (_, _) => ApplyDedupFilter();
+        _dedupPanel.SameNameCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _dedupPanel.MinSizeCheck.Checked += (_, _) => ApplyDedupFilter();
+        _dedupPanel.MinSizeCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _dedupPanel.MinDateCheck.Checked += (_, _) => ApplyDedupFilter();
+        _dedupPanel.MinDateCheck.Unchecked += (_, _) => ApplyDedupFilter();
     }
 
     // ── Archivos ──────────────────────────────────────────────────────
 
     private void AddFiles(IEnumerable<string> paths)
     {
+        var nowFiles = _window!.Files;
+        foreach (var item in nowFiles)
+            if (!_masterFiles.Any(f => f.FilePath.Equals(item.FilePath, StringComparison.OrdinalIgnoreCase)))
+                _masterFiles.Add(item);
+
         foreach (var path in paths)
         {
             if (FileFilters.IsSystemFile(Path.GetFileName(path))) continue;
-            if (_window!.Files.Any(f => f.FilePath.Equals(path, StringComparison.OrdinalIgnoreCase))) continue;
-            _window.Files.Add(new BaseFileItem
+            if (_masterFiles.Any(f => f.FilePath.Equals(path, StringComparison.OrdinalIgnoreCase))) continue;
+            _masterFiles.Add(new BaseFileItem
             {
                 FilePath = path,
                 FileName = Path.GetFileName(path),
                 FileSize = new FileInfo(path).Length
             });
         }
+        ApplyDedupFilter();
+    }
+
+    private DateTime GetFileDate(string path)
+    {
+        if (!_fileDates.TryGetValue(path, out var date))
+        {
+            date = File.GetLastWriteTime(path);
+            _fileDates[path] = date;
+        }
+        return date;
+    }
+
+    private void ApplyDedupFilter()
+    {
+        var visible = DedupFilter.Keep(_masterFiles,
+            f => f.FileName, f => f.FileSize, f => GetFileDate(f.FilePath),
+            _dedupPanel!.SameNameChecked, _dedupPanel.MinSizeChecked, _dedupPanel.MinDateChecked);
+
+        _window!.Files.Clear();
+        foreach (var item in visible)
+            _window.Files.Add(item);
+
         ResetResults();
-        _window!.MainControl.UpdateCounters();
+        _window.MainControl.UpdateCounters();
         RegeneratePrompt();
     }
 

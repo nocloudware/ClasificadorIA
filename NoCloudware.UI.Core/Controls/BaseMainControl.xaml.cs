@@ -177,6 +177,7 @@ public partial class BaseMainControl : UserControl
     public FileListBox FileListBox => FileList;
     public StatusBar StatusBar => StatusBarControl;
     public ContentControl OptionsContent => OptionsPanel;
+    public ContentControl FileListFooterContent => FileListFooterPanel;
     public ObservableCollection<BaseFileItem> Files { get; } = new();
 
     // ── Events ────────────────────────────────────────────────────────

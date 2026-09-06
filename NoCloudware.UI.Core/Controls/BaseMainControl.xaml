@@ -59,6 +59,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <!-- Header: Selected files + count -->
@@ -89,7 +90,7 @@
                     </Grid>
 
                     <!-- Select files button -->
-                    <ui:Button Grid.Row="2"
+                    <ui:Button Grid.Row="3"
                                Click="OnSelectFiles"
                                Appearance="Secondary"
                                Margin="0,8,0,0"
@@ -100,8 +101,15 @@
                         </ui:Button.Icon>
                     </ui:Button>
 
+                    <!-- Toolbar footer (apps inject content) -->
+                    <ContentControl Grid.Row="2"
+                                    x:Name="FileListFooterPanel"
+                                    Margin="0,8,0,0"
+                                    HorizontalContentAlignment="Stretch"
+                                    VerticalContentAlignment="Stretch"/>
+
                     <!-- Output folder selector -->
-                    <Border Grid.Row="3"
+                    <Border Grid.Row="4"
                             Background="{DynamicResource SurfaceAltBrush}"
                             CornerRadius="6"
                             Padding="8,6"
@@ -136,7 +144,7 @@
 
                     <!-- Status counters - CENTERED -->
                     <controls:StatusBar x:Name="StatusBarControl"
-                                        Grid.Row="4"
+                                        Grid.Row="5"
                                         Margin="0,8,0,0"
                                         HorizontalAlignment="Center"/>
                 </Grid>

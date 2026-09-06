@@ -22,6 +22,7 @@ public static class SelfTest
         RunClassificationModes();
         RunByokConfigStore();
         RunAiClientOffline();
+        RunDedupFilter();
         RunFileListCustomContent();
         RunEndToEnd();
 
@@ -371,5 +372,44 @@ public static class SelfTest
         {
             try { Directory.Delete(root, true); } catch { }
         }
+    }
+
+    // ── Dedup filter ───────────────────────────────────────────────────
+
+    private static void RunDedupFilter()
+    {
+        // a.txt: 3 copias con distinto tamaño/fecha.
+        var items = new List<(string Name, long Size, DateTime Date)>
+        {
+            ("a.txt", 100, new DateTime(2024, 1, 1)),
+            ("a.txt", 200, new DateTime(2024, 6, 1)),
+            ("a.txt", 300, new DateTime(2024, 3, 1)),
+            ("b.txt", 50, new DateTime(2024, 2, 1)),
+            ("b.txt", 70, new DateTime(2024, 4, 1)),
+            ("c.txt", 10, new DateTime(2024, 1, 1)),
+        };
+
+        List<string> Keep(bool sameName, bool minSize, bool minDate) =>
+            DedupFilter.Keep(items, x => x.Name, x => x.Size, x => x.Date, sameName, minSize, minDate)
+                .Select(x => x.Name).ToList();
+
+        var none = Keep(sameName: false, minSize: true, minDate: true);
+        Assert("Dedup mismoNombre=false muestra todos", none.Count == 6, $"got {none.Count}");
+
+        // minSize=true → conserva el mayor de cada grupo (a de 300, b de 70).
+        var bySize = Keep(sameName: true, minSize: true, minDate: false);
+        Assert("Dedup mayor tamaño", bySize.Count == 3 && bySize.Count(n => n == "a.txt") == 1, string.Join(",", bySize));
+
+        // minSize=false → conserva el menor (a de 100, b de 50).
+        var bySizeMin = Keep(sameName: true, minSize: false, minDate: false);
+        Assert("Dedup menor tamaño", bySizeMin.Count == 3 && bySizeMin.Count(n => n == "a.txt") == 1, string.Join(",", bySizeMin));
+
+        // minDate=true → conserva el de fecha mayor (a de jun, b de abr).
+        var byDate = Keep(sameName: true, minSize: false, minDate: true);
+        Assert("Dedup mayor fecha", byDate.Count == 3 && byDate.Count(n => n == "a.txt") == 1, string.Join(",", byDate));
+
+        // Combinación: mayor tamaño luego mayor fecha → a de 300 (fecha mar), no perder por fecha.
+        var both = Keep(sameName: true, minSize: true, minDate: true);
+        Assert("Dedup tamaño+fecha", both.Count == 3, string.Join(",", both));
     }
 }
