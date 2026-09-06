@@ -55,7 +55,11 @@ public partial class App : System.Windows.Application
         InitWindow(output);
         _options = new OptionsPanel();
         _dedupPanel = new DedupPanel();
-        var rightColumn = new StackPanel();
+        var rightColumn = new Grid();
+        rightColumn.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        rightColumn.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        Grid.SetRow(_dedupPanel, 0);
+        Grid.SetRow(_options, 1);
         rightColumn.Children.Add(_dedupPanel);
         rightColumn.Children.Add(_options);
         _window!.MainControl.OptionsContent.Content = rightColumn;

@@ -53,6 +53,7 @@
                            Style="{DynamicResource FieldLabelTextBlockStyle}"/>
                 <ComboBox x:Name="ProviderCombo"
                           Style="{DynamicResource ThemedComboBoxStyle}"
+                          DisplayMemberPath="Name"
                           SelectionChanged="ProviderCombo_SelectionChanged"/>
 
                 <!-- Nombre -->

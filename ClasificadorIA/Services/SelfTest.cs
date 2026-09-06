@@ -188,6 +188,13 @@ public static class SelfTest
             Assert("Store default: activo openai", fresh.ActiveProviderId == "openai");
             Assert("Store default: ollama sin key requerida", !fresh.Providers.First(p => p.Id == "ollama").RequiresApiKey);
 
+            foreach (var preset in AiProvider.DefaultPresets())
+            {
+                bool uriOk = string.IsNullOrEmpty(preset.ApiKeyUrl)
+                    || Uri.TryCreate(preset.ApiKeyUrl, UriKind.Absolute, out _);
+                Assert($"Preset {preset.Id} ApiKeyUrl no crashea Uri", uriOk, preset.ApiKeyUrl);
+            }
+
             fresh.Providers.Add(new AiProvider { Id = "custom-1", Name = "Mi API", BaseUrl = "https://x.example/v1", Models = { "m1" } });
             fresh.ActiveProviderId = "custom-1";
             store.Save(fresh);

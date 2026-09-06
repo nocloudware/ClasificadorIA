@@ -118,11 +118,15 @@ public partial class ByokDialog : Window
         ApiKeyBox.Text = p.ApiKey;
         if (preset)
         {
-            ApiKeyLink.Visibility = Visibility.Visible;
+            bool hasKeyUrl = !string.IsNullOrWhiteSpace(p.ApiKeyUrl);
+            ApiKeyLink.Visibility = hasKeyUrl ? Visibility.Visible : Visibility.Collapsed;
             ApiKeyUrlBox.Visibility = Visibility.Collapsed;
-            ApiKeyHyperlink.NavigateUri = new Uri(p.ApiKeyUrl);
-            ApiKeyHyperlink.Inlines.Clear();
-            ApiKeyHyperlink.Inlines.Add(Translations.Get("GetApiKey", _idioma));
+            if (hasKeyUrl)
+            {
+                ApiKeyHyperlink.NavigateUri = new Uri(p.ApiKeyUrl);
+                ApiKeyHyperlink.Inlines.Clear();
+                ApiKeyHyperlink.Inlines.Add(Translations.Get("GetApiKey", _idioma));
+            }
         }
         else
         {
