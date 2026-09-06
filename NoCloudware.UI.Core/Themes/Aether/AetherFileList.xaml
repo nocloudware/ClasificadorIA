@@ -11,12 +11,13 @@
     <Style x:Key="AetherFileItemStyle" TargetType="ListBoxItem">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
-        <Setter Property="Padding" Value="4,2"/>
+        <Setter Property="Padding" Value="4,1"/>
+        <Setter Property="MinHeight" Value="0"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
     </Style>
 
     <DataTemplate x:Key="AetherFileItemTemplate">
-        <StackPanel Orientation="Horizontal" Margin="0,3">
+        <StackPanel Orientation="Horizontal" Margin="0,1">
             <TextBlock Text="{Binding FileName}"
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        FontSize="13"/>

@@ -12,6 +12,7 @@
         <ListBox.Style>
             <Style TargetType="ListBox" BasedOn="{StaticResource AetherFileListBoxStyle}">
                 <Setter Property="AllowDrop" Value="True"/>
+                <Setter Property="ItemContainerStyle" Value="{StaticResource AetherFileItemStyle}"/>
             </Style>
         </ListBox.Style>
         <ListBox.ItemTemplate>
@@ -22,6 +23,7 @@
                                FontSize="13"/>
                     <TextBlock Text="{Binding StatusText}"
                                Foreground="{Binding StatusColor}"
+                               FontSize="12"
                                FontWeight="SemiBold"
                                Margin="8,0,0,0"/>
                 </StackPanel>
