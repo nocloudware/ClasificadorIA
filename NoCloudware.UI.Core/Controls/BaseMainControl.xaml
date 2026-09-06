@@ -89,27 +89,27 @@
                                         VerticalContentAlignment="Stretch"/>
                     </Grid>
 
-                    <!-- Select files button -->
-                    <ui:Button Grid.Row="3"
-                               Click="OnSelectFiles"
-                               Appearance="Secondary"
-                               Margin="0,8,0,0"
-                               HorizontalAlignment="Center"
-                               Content="{Binding SelectFilesButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                        <ui:Button.Icon>
-                            <ui:SymbolIcon Symbol="DocumentAdd24"/>
-                        </ui:Button.Icon>
-                    </ui:Button>
-
-                    <!-- Toolbar footer (apps inject content) -->
-                    <ContentControl Grid.Row="2"
-                                    x:Name="FileListFooterPanel"
-                                    Margin="0,8,0,0"
-                                    HorizontalContentAlignment="Stretch"
-                                    VerticalContentAlignment="Stretch"/>
+                    <!-- Select files + toolbar footer (apps inject content) -->
+                    <StackPanel Grid.Row="2"
+                                Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                Margin="0,8,0,0">
+                        <ui:Button Click="OnSelectFiles"
+                                   Appearance="Secondary"
+                                   Content="{Binding SelectFilesButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                            <ui:Button.Icon>
+                                <ui:SymbolIcon Symbol="DocumentAdd24"/>
+                            </ui:Button.Icon>
+                        </ui:Button>
+                        <ContentControl x:Name="FileListFooterPanel"
+                                        Margin="8,0,0,0"
+                                        VerticalAlignment="Center"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch"/>
+                    </StackPanel>
 
                     <!-- Output folder selector -->
-                    <Border Grid.Row="4"
+                    <Border Grid.Row="3"
                             Background="{DynamicResource SurfaceAltBrush}"
                             CornerRadius="6"
                             Padding="8,6"
@@ -144,7 +144,7 @@
 
                     <!-- Status counters - CENTERED -->
                     <controls:StatusBar x:Name="StatusBarControl"
-                                        Grid.Row="5"
+                                        Grid.Row="4"
                                         Margin="0,8,0,0"
                                         HorizontalAlignment="Center"/>
                 </Grid>

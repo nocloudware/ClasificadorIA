@@ -41,7 +41,6 @@ public static class Translations
         // Options panel
         ["SourceFolder"] = ("Carpeta de origen", "Source folder"),
         ["Browse"] = ("Examinar", "Browse"),
-        ["NoFolderSelected"] = ("Ninguna carpeta seleccionada", "No folder selected"),
         ["Mode"] = ("Modo", "Mode"),
         ["Criterion"] = ("Criterio", "Criterion"),
         ["Depth"] = ("Profundidad", "Depth"),

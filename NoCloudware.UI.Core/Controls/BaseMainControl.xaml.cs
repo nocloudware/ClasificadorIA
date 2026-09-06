@@ -574,7 +574,16 @@ public partial class BaseMainControl : UserControl
 
     private void OnFilesDroppedCore(object sender, FilesDroppedEventArgs e)
     {
+        var files = new List<string>();
         foreach (var path in e.FilePaths)
+        {
+            if (System.IO.Directory.Exists(path))
+                files.AddRange(System.IO.Directory.GetFiles(path, "*", System.IO.SearchOption.AllDirectories));
+            else if (System.IO.File.Exists(path))
+                files.Add(path);
+        }
+
+        foreach (var path in files)
         {
             if (Files.Any(f => f.FilePath.Equals(path, StringComparison.OrdinalIgnoreCase)))
                 continue;
@@ -586,7 +595,7 @@ public partial class BaseMainControl : UserControl
             });
         }
         UpdateCounters();
-        RaiseEvent(new FilesDroppedEventArgs(FilesDroppedEvent, this, e.FilePaths));
+        RaiseEvent(new FilesDroppedEventArgs(FilesDroppedEvent, this, files.ToArray()));
     }
 
     private void OnSelectFiles(object sender, RoutedEventArgs e)

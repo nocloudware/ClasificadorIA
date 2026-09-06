@@ -1,0 +1,14 @@
+<UserControl x:Class="ClasificadorIA.Panels.AddFolderButton"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <ui:Button x:Name="Button"
+               Appearance="Secondary"
+               HorizontalAlignment="Stretch"
+               HorizontalContentAlignment="Center"
+               Click="OnClick">
+        <ui:Button.Icon>
+            <ui:SymbolIcon Symbol="FolderAdd24"/>
+        </ui:Button.Icon>
+    </ui:Button>
+</UserControl>

@@ -26,26 +26,7 @@
 
             <StackPanel Margin="0,0,12,8">
 
-                <!-- 1. Carpeta de origen -->
-                <TextBlock x:Name="SourceFolderLabel"
-                           Style="{DynamicResource AetherCaptionStyle}"/>
-                <Grid Margin="0,4,0,6">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock x:Name="PathText"
-                               TextTrimming="CharacterEllipsis"
-                               VerticalAlignment="Center"
-                               Style="{DynamicResource AetherLabelStyle}"/>
-                    <Button x:Name="ChangeBtn"
-                            Grid.Column="1"
-                            Style="{DynamicResource SecondaryButtonStyle}"
-                            Margin="8,0,0,0"
-                            Padding="10,3"/>
-                </Grid>
-
-                <!-- 2. Método -->
+                <!-- 1. Método -->
                 <TextBlock x:Name="MethodLabel"
                            Style="{DynamicResource AetherCaptionStyle}"
                            Margin="0,8,0,0"/>

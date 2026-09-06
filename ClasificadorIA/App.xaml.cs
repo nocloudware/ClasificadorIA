@@ -54,9 +54,12 @@ public partial class App : System.Windows.Application
 
         InitWindow(output);
         _options = new OptionsPanel();
-        _window!.MainControl.OptionsContent.Content = _options;
         _dedupPanel = new DedupPanel();
-        _window.MainControl.FileListFooterContent.Content = _dedupPanel;
+        var rightColumn = new StackPanel();
+        rightColumn.Children.Add(_dedupPanel);
+        rightColumn.Children.Add(_options);
+        _window!.MainControl.OptionsContent.Content = rightColumn;
+        _window.MainControl.FileListFooterContent.Content = CreateAddFolderButton();
         WireEvents();
         ApplyLanguage();
         _window!.Show();
@@ -205,8 +208,7 @@ public partial class App : System.Windows.Application
             SavePreferences();
         };
 
-        _options!.ChangeBtn.Click += (_, _) => OpenSourceFolder();
-        _options.GeneratePromptBtn.Click += (_, _) => RegeneratePrompt();
+        _options!.GeneratePromptBtn.Click += (_, _) => RegeneratePrompt();
         _options.CopyPromptBtn.Click += (_, _) => CopyPrompt();
         _options.PasteResponseBtn.Click += (_, _) => PasteResponse();
         _options.LoadResponseBtn.Click += (_, _) => LoadResponse();
@@ -266,12 +268,19 @@ public partial class App : System.Windows.Application
             _dedupPanel!.SameNameChecked, _dedupPanel.MinSizeChecked, _dedupPanel.MinDateChecked);
 
         _window!.Files.Clear();
-        foreach (var item in visible)
+        foreach (var item in visible.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase))
             _window.Files.Add(item);
 
         ResetResults();
         _window.MainControl.UpdateCounters();
         RegeneratePrompt();
+    }
+
+    private AddFolderButton CreateAddFolderButton()
+    {
+        var button = new AddFolderButton();
+        button.Clicked += (_, _) => OpenSourceFolder();
+        return button;
     }
 
     private void OpenSourceFolder()
@@ -288,7 +297,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        var added = Directory.GetFiles(dialog.FolderName)
+        var added = Directory.GetFiles(dialog.FolderName, "*", SearchOption.AllDirectories)
             .Where(f => !FileFilters.IsSystemFile(Path.GetFileName(f)))
             .ToArray();
         AddFiles(added);
