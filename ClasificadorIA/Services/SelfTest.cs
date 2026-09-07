@@ -3,6 +3,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using ClasificadorIA.Models;
+using ClasificadorIA.Panels;
 using NoCloudware.UI.Core.Controls;
 
 namespace ClasificadorIA.Services;
@@ -21,6 +22,7 @@ public static class SelfTest
         RunTranslations();
         RunClassificationModes();
         RunByokConfigStore();
+        RunByokDialogLabels();
         RunAiClientOffline();
         RunDedupFilter();
         RunFileListCustomContent();
@@ -215,6 +217,31 @@ public static class SelfTest
     }
 
     // ── AiClient offline ───────────────────────────────────────────────
+
+    private static void RunByokDialogLabels()
+    {
+        var dialog = new ByokDialog(new ByokConfig(), new ByokConfigStore(), new AiClient(), Idioma.Español);
+        var labels = new (string Name, string Value)[]
+        {
+            ("Title", dialog.ByokDialogTitle),
+            ("Subtitle", dialog.ByokDialogSubtitle),
+            ("Provider", dialog.ProviderLabel),
+            ("Name", dialog.NameLabel),
+            ("Scheme", dialog.SchemeLabel),
+            ("BaseUrl", dialog.BaseUrlLabel),
+            ("ApiKey", dialog.ApiKeyLabel),
+            ("Model", dialog.ModelLabel),
+            ("ModelHint", dialog.ModelHint),
+            ("Temperature", dialog.TemperatureLabel),
+            ("ReloadModels", dialog.ReloadModelsLabel),
+            ("Delete", dialog.DeleteLabel),
+            ("Test", dialog.TestConnectionLabel),
+            ("Save", dialog.SaveLabel),
+            ("Cancel", dialog.CancelLabel)
+        };
+        foreach (var l in labels)
+            Assert("ByokDialog label " + l.Name, !string.IsNullOrWhiteSpace(l.Value), l.Value);
+    }
 
     private static void RunAiClientOffline()
     {

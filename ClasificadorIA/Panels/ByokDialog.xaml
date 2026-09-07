@@ -32,10 +32,10 @@
 
         <!-- Header -->
         <StackPanel Grid.Row="0" Margin="0,0,0,14">
-            <TextBlock Text="{Binding ByokDialogTitle, RelativeSource={RelativeSource Self}}"
+            <TextBlock Text="{Binding ByokDialogTitle, RelativeSource={RelativeSource AncestorType=Window}}"
                        FontSize="18" FontWeight="SemiBold"
                        Foreground="{DynamicResource TextPrimaryBrush}"/>
-            <TextBlock Text="{Binding ByokDialogSubtitle, RelativeSource={RelativeSource Self}}"
+            <TextBlock Text="{Binding ByokDialogSubtitle, RelativeSource={RelativeSource AncestorType=Window}}"
                        FontSize="12"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        TextWrapping="Wrap"
@@ -49,7 +49,7 @@
             <StackPanel Margin="0,4,0,0">
 
                 <!-- Proveedor -->
-                <TextBlock Text="{Binding ProviderLabel, RelativeSource={RelativeSource Self}}"
+                <TextBlock Text="{Binding ProviderLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                            Style="{DynamicResource FieldLabelTextBlockStyle}"/>
                 <ComboBox x:Name="ProviderCombo"
                           Style="{DynamicResource ThemedComboBoxStyle}"
@@ -57,28 +57,28 @@
                           SelectionChanged="ProviderCombo_SelectionChanged"/>
 
                 <!-- Nombre -->
-                <TextBlock Text="{Binding NameLabel, RelativeSource={RelativeSource Self}}"
+                <TextBlock Text="{Binding NameLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                            Style="{DynamicResource FieldLabelTextBlockStyle}"
                            Margin="0,10,0,0"/>
                 <TextBox x:Name="NameBox"
                          Style="{DynamicResource AetherTextBoxStyle}"/>
 
                 <!-- Esquema -->
-                <TextBlock Text="{Binding SchemeLabel, RelativeSource={RelativeSource Self}}"
+                <TextBlock Text="{Binding SchemeLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                            Style="{DynamicResource FieldLabelTextBlockStyle}"
                            Margin="0,10,0,0"/>
                 <ComboBox x:Name="SchemeCombo"
                          Style="{DynamicResource ThemedComboBoxStyle}"/>
 
                 <!-- Base URL -->
-                <TextBlock Text="{Binding BaseUrlLabel, RelativeSource={RelativeSource Self}}"
+                <TextBlock Text="{Binding BaseUrlLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                            Style="{DynamicResource FieldLabelTextBlockStyle}"
                            Margin="0,10,0,0"/>
                 <TextBox x:Name="BaseUrlBox"
                          Style="{DynamicResource AetherTextBoxStyle}"/>
 
                 <!-- API key -->
-                <TextBlock Text="{Binding ApiKeyLabel, RelativeSource={RelativeSource Self}}"
+                <TextBlock Text="{Binding ApiKeyLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                            Style="{DynamicResource FieldLabelTextBlockStyle}"
                            Margin="0,10,0,0"/>
                 <TextBox x:Name="ApiKeyBox" VerticalContentAlignment="Center"
@@ -100,13 +100,13 @@
                 </StackPanel>
 
                 <!-- Modelos -->
-                <TextBlock Text="{Binding ModelLabel, RelativeSource={RelativeSource Self}}"
+                <TextBlock Text="{Binding ModelLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                            Style="{DynamicResource FieldLabelTextBlockStyle}"
                            Margin="0,10,0,0"/>
                 <DockPanel>
                     <Button x:Name="ReloadModelsButton"
                             DockPanel.Dock="Right"
-                            Content="{Binding ReloadModelsLabel, RelativeSource={RelativeSource Self}}"
+                            Content="{Binding ReloadModelsLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                             Style="{DynamicResource SecondaryButtonStyle}"
                             Margin="8,0,0,0"
                             Click="ReloadModelsButton_Click"/>
@@ -114,13 +114,13 @@
                       Style="{DynamicResource ThemedComboBoxStyle}"
                       IsEditable="True"/>
                 </DockPanel>
-                <TextBlock Text="{Binding ModelHint, RelativeSource={RelativeSource Self}}"
+                <TextBlock Text="{Binding ModelHint, RelativeSource={RelativeSource AncestorType=Window}}"
                            FontSize="11"
                            Foreground="{DynamicResource TextSecondaryBrush}"
                            Margin="0,4,0,0"/>
 
                 <!-- Temperatura -->
-                <TextBlock Text="{Binding TemperatureLabel, RelativeSource={RelativeSource Self}}"
+                <TextBlock Text="{Binding TemperatureLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                            Style="{DynamicResource FieldLabelTextBlockStyle}"
                            Margin="0,10,0,0"/>
                 <DockPanel>
@@ -151,23 +151,23 @@
         <!-- Footer -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
             <Button x:Name="DeleteButton"
-                    Content="{Binding DeleteLabel, RelativeSource={RelativeSource Self}}"
+                    Content="{Binding DeleteLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Margin="0,0,8,0"
                     HorizontalAlignment="Left"
                     Click="DeleteButton_Click"/>
             <Button x:Name="TestButton"
-                    Content="{Binding TestConnectionLabel, RelativeSource={RelativeSource Self}}"
+                    Content="{Binding TestConnectionLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Margin="0,0,8,0"
                     Click="TestButton_Click"/>
             <Button x:Name="SaveButton"
-                    Content="{Binding SaveLabel, RelativeSource={RelativeSource Self}}"
+                    Content="{Binding SaveLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                     Style="{DynamicResource PrimaryButtonStyle}"
                     Margin="0,0,8,0"
                     Click="SaveButton_Click"/>
             <Button x:Name="CancelButton"
-                    Content="{Binding CancelLabel, RelativeSource={RelativeSource Self}}"
+                    Content="{Binding CancelLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                     Style="{DynamicResource SecondaryButtonStyle}"
                     Click="CancelButton_Click"/>
         </StackPanel>
