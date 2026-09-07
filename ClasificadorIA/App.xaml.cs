@@ -605,7 +605,11 @@ public partial class App : System.Windows.Application
 
     private void ShowStatus(string message)
     {
-        if (_options != null)
-            _options.PanelHintText.Text = message;
+        if (_options == null) return;
+        void Set() => _options.PanelHintText.Text = message;
+        if (_options.Dispatcher.CheckAccess())
+            Set();
+        else
+            _options.Dispatcher.BeginInvoke(Set);
     }
 }
