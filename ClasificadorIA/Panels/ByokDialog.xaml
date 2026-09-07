@@ -133,6 +133,7 @@
                         Minimum="0" Maximum="1"
                         IsSnapToTickEnabled="True"
                         TickFrequency="0.05"
+                        ToolTip="{Binding TemperatureHint, RelativeSource={RelativeSource AncestorType=Window}}"
                         ValueChanged="TemperatureSlider_ValueChanged"/>
                 </DockPanel>
 

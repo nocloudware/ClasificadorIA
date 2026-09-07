@@ -39,6 +39,7 @@ public partial class ByokDialog : Window
     public string BaseUrlLabel => Translations.Get("BaseUrl", _idioma);
     public string ApiKeyLabel => Translations.Get("ApiKey", _idioma);
     public string ModelLabel => Translations.Get("Model", _idioma);
+    public string ReloadModelsLabel => Translations.Get("ReloadModels", _idioma);
     public string ModelHint => Translations.Get("ModelHint", _idioma);
     public string TemperatureLabel => Translations.Get("Temperature", _idioma);
     public string TemperatureHint => Translations.Get("TemperatureHint", _idioma);

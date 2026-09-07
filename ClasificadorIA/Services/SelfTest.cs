@@ -328,6 +328,7 @@ public static class SelfTest
             ("ApiKey", dialog.ApiKeyLabel),
             ("Model", dialog.ModelLabel),
             ("ModelHint", dialog.ModelHint),
+            ("ReloadModels", dialog.ReloadModelsLabel),
             ("Temperature", dialog.TemperatureLabel),
             ("TemperatureHint", dialog.TemperatureHint),
             ("Delete", dialog.DeleteLabel),
