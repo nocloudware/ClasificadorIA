@@ -139,6 +139,7 @@ public static class Translations
         ["DeleteByokConfirm"] = ("Eliminar proveedor {0}?", "Delete provider {0}?"),
         ["Scheme"] = ("Esquema", "Scheme"),
         ["LoadingModels"] = ("Cargando modelos…", "Loading models…"),
+        ["TestingConnection"] = ("Probando conexión…", "Testing connection…"),
         ["ModelsLoaded"] = ("{0} modelos disponibles", "{0} models available"),
         ["ModelHint"] = ("Selecciona un modelo disponible", "Select an available model"),
         ["ByokNeedsFields"] = ("Completa base URL y modelo.", "Complete base URL and model."),

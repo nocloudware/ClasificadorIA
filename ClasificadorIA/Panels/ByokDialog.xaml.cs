@@ -193,38 +193,55 @@ public partial class ByokDialog : Window
 
     private void ReloadModelsButton_Click(object sender, RoutedEventArgs e) => _ = ReloadModelsAsync();
 
+    private string? ValidateProvider(AiProvider p)
+    {
+        if (!Uri.TryCreate(p.BaseUrl, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
+            return Translations.Get("ByokNeedsFields", _idioma);
+        if (p.RequiresApiKey && string.IsNullOrWhiteSpace(p.ApiKey))
+            return string.Format(Translations.Get("ProviderNeedsKey", _idioma), p.Name);
+        string model = ModelCombo.Text?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(model))
+            return Translations.Get("ErrNoModel", _idioma);
+        return null;
+    }
+
+    private async Task<(bool Ok, string Message)> TestConnectionAsync(AiProvider p)
+    {
+        StatusText.Text = Translations.Get("TestingConnection", _idioma);
+        try
+        {
+            await _client.GenerateAsync(p, "ping");
+            return (true, string.Format(Translations.Get("ConnectionOk", _idioma), p.Name));
+        }
+        catch (AiException ex)
+        {
+            return (false, string.Format(Translations.Get("ConnectionFailed", _idioma),
+                Translations.AiErrorMessage(ex, _idioma)));
+        }
+    }
+
+    private void ShowErrorBox(string message)
+    {
+        StatusText.Text = message;
+        MessageBox.Show(this, message, Translations.Get("ByokErrorTitle", _idioma),
+            MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
     private async void TestButton_Click(object sender, RoutedEventArgs e)
     {
         var p = SelectedProvider;
         if (p == null || p.Id == _addMarker.Id) return;
         ApplyFieldEdits(p);
-        if (p.RequiresApiKey && string.IsNullOrWhiteSpace(p.ApiKey))
+        string? error = ValidateProvider(p);
+        if (error != null)
         {
-            StatusText.Text = string.Format(Translations.Get("ProviderNeedsKey", _idioma), p.Name);
-            return;
-        }
-        string model = ModelCombo.Text?.Trim() ?? p.SelectedModel;
-        if (string.IsNullOrWhiteSpace(model))
-        {
-            StatusText.Text = Translations.Get("ErrNoModel", _idioma);
+            StatusText.Text = error;
             return;
         }
         TestButton.IsEnabled = false;
-        StatusText.Text = Translations.Get("LoadingModels", _idioma);
-        try
-        {
-            string reply = await _client.GenerateAsync(p, "ping");
-            StatusText.Text = string.Format(Translations.Get("ConnectionOk", _idioma), p.Name);
-        }
-        catch (AiException ex)
-        {
-            StatusText.Text = string.Format(Translations.Get("ConnectionFailed", _idioma),
-                Translations.AiErrorMessage(ex, _idioma));
-        }
-        finally
-        {
-            TestButton.IsEnabled = true;
-        }
+        (bool ok, string message) = await TestConnectionAsync(p);
+        StatusText.Text = message;
+        TestButton.IsEnabled = true;
     }
 
     private async void ApiKeyHyperlink_Click(object sender, RoutedEventArgs e)
@@ -258,32 +275,31 @@ public partial class ByokDialog : Window
         RefreshProviderCombo();
     }
 
-    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    private async void SaveButton_Click(object sender, RoutedEventArgs e)
     {
         var p = SelectedProvider;
         if (p == null || p.Id == _addMarker.Id)
         {
-            StatusText.Text = Translations.Get("ProvidersEmpty", _idioma);
+            ShowErrorBox(Translations.Get("ProvidersEmpty", _idioma));
             return;
         }
         ApplyFieldEdits(p);
-        if (string.IsNullOrWhiteSpace(p.Name) ||
-            !Uri.TryCreate(p.BaseUrl, UriKind.Absolute, out var uri) || (uri.Scheme != "http" && uri.Scheme != "https"))
+        string? error = ValidateProvider(p);
+        if (error != null)
         {
-            StatusText.Text = Translations.Get("ByokNeedsFields", _idioma);
+            ShowErrorBox(error);
             return;
         }
-        if (p.RequiresApiKey && string.IsNullOrWhiteSpace(p.ApiKey))
+        SaveButton.IsEnabled = false;
+        (bool ok, string message) = await TestConnectionAsync(p);
+        StatusText.Text = message;
+        SaveButton.IsEnabled = true;
+        if (!ok)
         {
-            StatusText.Text = string.Format(Translations.Get("ProviderNeedsKey", _idioma), p.Name);
+            ShowErrorBox(message);
             return;
         }
         string model = ModelCombo.Text?.Trim() ?? "";
-        if (model.Length == 0)
-        {
-            StatusText.Text = Translations.Get("ErrNoModel", _idioma);
-            return;
-        }
         if (!p.Models.Contains(model, StringComparer.OrdinalIgnoreCase))
             p.Models.Insert(0, model);
         p.SelectedModel = model;
