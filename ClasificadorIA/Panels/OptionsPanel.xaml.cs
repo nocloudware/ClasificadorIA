@@ -10,38 +10,62 @@ public partial class OptionsPanel : UserControl
     public OptionsPanel()
     {
         InitializeComponent();
-        Loaded += (_, _) => ApplyLanguage();
+        Loaded += (_, _) =>
+        {
+            ApplyLanguage();
+            ApplyMethodState();
+        };
         Translations.LanguageChanged += (_, _) => ApplyLanguage();
 
-        MethodManual.Checked += (_, _) =>
+        MethodLocal.Checked += (_, _) => ApplyMethodState();
+        MethodIa.Checked += (_, _) => ApplyMethodState();
+    }
+
+    public bool SameNameChecked => SameNameCheck.IsChecked == true;
+    public bool MinSizeChecked => MinSizeCheck.IsChecked == true;
+    public bool MinDateChecked => MinDateCheck.IsChecked == true;
+
+    public int BatchSize
+    {
+        get
         {
-            ByokButton.Visibility = Visibility.Collapsed;
-            PanelHintText.Text = "";
-        };
-        MethodAuto.Checked += (_, _) =>
-        {
-            ByokButton.Visibility = Visibility.Visible;
-            PanelHintText.Text = Translations.Get("AutoByokHint");
-        };
+            double? value = BatchSizeBox.Value;
+            if (value is null || double.IsNaN(value.Value) || value.Value < BatchSizeBox.Minimum)
+                return (int)Math.Round(BatchSizeBox.Minimum);
+            if (value.Value > BatchSizeBox.Maximum)
+                return (int)Math.Round(BatchSizeBox.Maximum);
+            return (int)Math.Round(value.Value);
+        }
+    }
+
+    public bool IsIaMethod => MethodIa.IsChecked == true;
+
+    private void ApplyMethodState()
+    {
+        bool ia = IsIaMethod;
+        ModeCombo.IsEnabled = ia;
+        CriterionCombo.IsEnabled = ia;
+        BatchSizeBox.IsEnabled = ia;
+        ByokButton.Visibility = ia ? Visibility.Visible : Visibility.Collapsed;
+        PanelHintText.Text = ia ? Translations.Get("AutoByokHint") : "";
     }
 
     private void ApplyLanguage()
     {
         PanelTitleText.Text = Translations.Get("OptionsPanelTitle");
         PanelSubtitleText.Text = Translations.Get("AppTagline");
+        DedupTitleText.Text = Translations.Get("DedupTitle");
+        SameNameCheck.Content = Translations.Get("DedupSameName");
+        MinSizeCheck.Content = Translations.Get("DedupMinSize");
+        MinDateCheck.Content = Translations.Get("DedupMinDate");
         MethodLabel.Text = Translations.Get("Method");
-        MethodManual.Content = Translations.Get("ManualMode");
-        MethodAuto.Content = Translations.Get("AutoMode");
+        MethodLocal.Content = Translations.Get("MethodLocal");
+        MethodIa.Content = Translations.Get("MethodIA");
         ByokButton.Content = Translations.Get("Byok");
         ModeLabel.Text = Translations.Get("Mode");
         CriterionLabel.Text = Translations.Get("Criterion");
         DepthLabel.Text = Translations.Get("Depth");
-        PromptSectionLabel.Text = Translations.Get("GeneratePrompt");
-        GeneratePromptBtn.Content = Translations.Get("GeneratePrompt");
-        CopyPromptBtn.Content = Translations.Get("Copy");
-        ResponseSectionLabel.Text = Translations.Get("PasteResponse");
-        PasteResponseBtn.Content = Translations.Get("PasteResponse");
-        LoadResponseBtn.Content = Translations.Get("Load");
+        BatchSizeLabel.Text = Translations.Get("BatchSize");
         OutputModeLabel.Text = Translations.Get("OutputMode");
         CopyRadio.Content = Translations.Get("CopyFiles");
         MoveRadio.Content = Translations.Get("MoveFiles");

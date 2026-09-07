@@ -17,6 +17,8 @@ public static class SelfTest
         Failures.Clear();
         RunPromptGenerator();
         RunResponseParser();
+        RunLocalClassifier();
+        RunBatchClassifier();
         RunFileOrganizer();
         RunFileFilters();
         RunTranslations();
@@ -52,15 +54,23 @@ public static class SelfTest
         var mode = ClassificationModes.Find("Música")!;
         var files = new[] { "cancion1.mp3", "cancion2.mp3" };
 
-        string es = PromptGenerator.Generate(mode, "Género", 5, Idioma.Español, files);
-        Assert("Prompt ES contiene criterio", es.Contains("género"));
-        Assert("Prompt ES contiene key JSON", es.Contains("\"categorias\""));
-        Assert("Prompt ES lista archivos", es.Contains("- cancion1.mp3"));
+        string es = PromptGenerator.AssignmentBatch(mode, "Género", Idioma.Español, files);
+        Assert("Lote ES contiene criterio", es.Contains("género"));
+        Assert("Lote ES lista archivos", es.Contains("- cancion1.mp3"));
+        Assert("Lote ES pide formato archivos", es.Contains("\"archivos\""));
 
-        string en = PromptGenerator.Generate(mode, "Género", 5, Idioma.Inglés, files);
-        Assert("Prompt EN contiene criterio", en.Contains("genre"));
-        Assert("Prompt EN contiene key JSON", en.Contains("\"categories\""));
-        Assert("Prompt EN usa descripcion EN", en.Contains("classifying songs"));
+        string en = PromptGenerator.AssignmentBatch(mode, "Género", Idioma.Inglés, files);
+        Assert("Lote EN contiene criterio", en.Contains("genre"));
+        Assert("Lote EN usa descripcion EN", en.Contains("classifying songs"));
+        Assert("Lote EN pide formato files", en.Contains("\"files\""));
+
+        var stats = new[] { new CategoryStat("Rock", 12, new[] { "a.mp3", "b.mp3" }), new CategoryStat("Pop", 8, new[] { "c.mp3" }) };
+        string consEs = PromptGenerator.Consolidate(stats, 5, Idioma.Español);
+        Assert("Consolidación ES incluye categoría y conteo", consEs.Contains("Rock (12"));
+        Assert("Consolidación ES pide formato finales", consEs.Contains("\"finales\""));
+        string consEn = PromptGenerator.Consolidate(stats, 5, Idioma.Inglés);
+        Assert("Consolidación EN pide formato final", consEn.Contains("\"final\""));
+        Assert("Consolidación vacía", PromptGenerator.Consolidate(Array.Empty<CategoryStat>(), 5, Idioma.Español) == "");
     }
 
     // ── Parser ─────────────────────────────────────────────────────────
@@ -69,32 +79,117 @@ public static class SelfTest
     {
         var realFiles = new[] { "album1.mp3", "Red Hot Chili Peppers - Under The Bridge.mp3", "Bad Bunny - X.mp3", "The Beatles - Hey Jude.mp3" };
 
-        string es = """{"categorias": {"Rock": ["album1.MP3"], "Reggaetón": ["bad bunny - x.mp3"]}, "extra": 1}""";
-        var esResult = ResponseParser.Parse(es, realFiles, Idioma.Español);
-        Assert("Parse ES encuentra categorías", esResult.Count == 2, $"got {esResult.Count}");
-        Assert("Parse ES matchea case-insensitive", esResult.Any(r => r.Category == "Rock" && r.Files[0] == "album1.mp3"));
+        string es = """{"archivos": [{"archivo": "album1.MP3", "categoria": "Rock"}, {"archivo": "bad bunny - x.mp3", "categoria": "Reggaetón"}, {"archivo": "fantasma.mp3", "categoria": "X"}]}""";
+        var esAssign = ResponseParser.ParseBatchAssignments(es, realFiles, Idioma.Español);
+        Assert("Asignación ES matchea case-insensitive", esAssign.TryGetValue("album1.mp3", out var c1) && c1 == "Rock");
+        Assert("Asignación ES ignora archivos inexistentes", !esAssign.ContainsKey("fantasma.mp3"));
+        Assert("Asignación ES cuenta", esAssign.Count == 2, $"got {esAssign.Count}");
 
-        string en = "```json\n{\"categories\": {\"Rock\": [\"Red Hot Chili Peppers - Under The Bridge.mp3\"]}}\n```";
-        var enResult = ResponseParser.Parse(en, realFiles, Idioma.Inglés);
-        Assert("Parse EN con código markdown", enResult.Count == 1 && enResult[0].Files[0] == "Red Hot Chili Peppers - Under The Bridge.mp3");
+        string en = "```json\n{\"files\": [{\"file\": \"Red Hot Chili Peppers - Under The Bridge.mp3\", \"category\": \"Rock\"}]}\n```";
+        var enAssign = ResponseParser.ParseBatchAssignments(en, realFiles, Idioma.Inglés);
+        Assert("Asignación EN con código markdown", enAssign.Count == 1 && enAssign["Red Hot Chili Peppers - Under The Bridge.mp3"] == "Rock");
 
-        string fallback = """{"categories": {"Beatles": ["The Beatles - Hey Jude.mp3"]}}""";
-        var fbResult = ResponseParser.Parse(fallback, realFiles, Idioma.Español);
-        Assert("Parse ES acepta key EN de respaldo", fbResult.Count == 1 && fbResult[0].Category == "Beatles");
+        string fallback = """{"files": [{"file": "album1.mp3", "category": "Beatles"}]}""";
+        var fbAssign = ResponseParser.ParseBatchAssignments(fallback, realFiles, Idioma.Español);
+        Assert("Asignación ES acepta key EN de respaldo", fbAssign.Count == 1 && fbAssign["album1.mp3"] == "Beatles");
 
-        var dupe = ResponseParser.Parse("""{"categorias":{"A":["c1.mkv"],"B":["c1.mkv"]}}""", new[] { "c1.mkv" }, Idioma.Español);
-        Assert("Parse conserva archivos en varias categorías", dupe.Count == 2 && dupe.Sum(r => r.Files.Count) == 2);
+        Assert("Asignación sin JSON devuelve vacío", ResponseParser.ParseBatchAssignments("no hay json aquí", realFiles, Idioma.Español).Count == 0);
+        Assert("Asignación null devuelve vacío", ResponseParser.ParseBatchAssignments(null!, realFiles, Idioma.Español).Count == 0);
 
-        var trash = ResponseParser.Parse("no hay json aquí", realFiles, Idioma.Español);
-        Assert("Parse sin JSON devuelve vacío", trash.Count == 0);
-        var empty = ResponseParser.Parse("""{"categorias":{"X":[]}}""", realFiles, Idioma.Español);
-        Assert("Parse categoría vacía se descarta", empty.Count == 0);
-        var missingFiles = ResponseParser.Parse("""{"categorias":{"A":["no-existe.txt"],"B":["c1.mkv"]}}""", new[] { "c1.mkv" }, Idioma.Español);
-        Assert("Parse descarta archivos inexistentes", missingFiles.Count == 1 && missingFiles[0].Files.Count == 1);
+        string mapEs = """{"finales": {"Rock": ["rock", "rock clásico"], "Reggaetón": ["reggeaton"]}}""";
+        var esMap = ResponseParser.ParseConsolidationMap(mapEs, Idioma.Español);
+        Assert("Mapa ES parsea", esMap != null && esMap.Count == 2, esMap == null ? "null" : $"{esMap.Count}");
+        Assert("Mapa ES agrupa fuentes", esMap!["Rock"].Length == 2);
 
-        var sinCat = ResponseParser.Parse("""{"categorias":{"A":["../fuera.txt"]}}""", new[] { "../fuera.txt" }, Idioma.Español);
-        Assert("Parse saneado de categoría", sinCat[0].Category == "A");
-        Assert("Parse null response", ResponseParser.Parse(null!, new[] { "a.txt" }, Idioma.Español).Count == 0);
+        string mapEn = """{"final": {"Pop": ["pop", "pop rock"]}}""";
+        var enMap = ResponseParser.ParseConsolidationMap(mapEn, Idioma.Inglés);
+        Assert("Mapa EN parsea", enMap != null && enMap["Pop"].Length == 2);
+
+        string mapFallback = """{"final": {"Una": ["otra"]}}""";
+        var fbMap = ResponseParser.ParseConsolidationMap(mapFallback, Idioma.Español);
+        Assert("Mapa ES acepta key EN de respaldo", fbMap != null && fbMap["Una"].Length == 1);
+
+        Assert("Mapa sin JSON devuelve null", ResponseParser.ParseConsolidationMap("nada", Idioma.Español) == null);
+        Assert("Mapa null devuelve null", ResponseParser.ParseConsolidationMap(null!, Idioma.Español) == null);
+    }
+
+    // ── Clasificador local ─────────────────────────────────────────────
+
+    private static void RunLocalClassifier()
+    {
+        // Tema por token compartido ("beatles" en 2 archivos).
+        var beatles = new[] { "The Beatles - Hey Jude.mp3", "The Beatles - Let It Be.mp3", "Queen - Under Pressure.mp3" };
+        var batles = LocalClassifier.Classify(beatles, 5, Idioma.Español);
+        Assert("Local: tema por token compartido", batles.Any(r => r.Category == "Beatles" && r.Files.Count == 2), string.Join(",", batles.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Local: fallback por extensión", batles.Any(r => r.Category == "Audio" && r.Files.Count == 1));
+
+        // Fallback mixto por extensión con y sin tema.
+        var mixed = new[] { "vacaciones montaña.jpg", "vacaciones playa.jpg", "capitulo1.pdf" };
+        var mixto = LocalClassifier.Classify(mixed, 5, Idioma.Español);
+        Assert("Local: tema sobre extensión (vacaciones)", mixto.Any(r => r.Category == "Vacaciones" && r.Files.Count == 2), string.Join(",", mixto.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Local: documento por extensión", mixto.Any(r => r.Category == "Documento"));
+
+        // Stopwords no forman tema.
+        var stop = new[] { "de el la.mp3", "de el la y.mp3" };
+        var noTema = LocalClassifier.Classify(stop, 5, Idioma.Español);
+        Assert("Local: stopwords ignoradas (sin tema)", !noTema.Any(r => r.Category == "De" || r.Category == "El" || r.Category == "La"));
+
+        // Recorte por profundidad.
+        var many = new[] { "rock-a.mp3", "rock-b.mp3", "pop-a.mp3", "pop-b.mp3", "jazz-a.mp3", "jazz-b.mp3", "folk-a.mp3", "folk-b.mp3", "solo-x.mp3" };
+        var recortado = LocalClassifier.Classify(many, 3, Idioma.Español);
+        Assert("Local: recorte por profundidad", recortado.Count <= 3, $"count {recortado.Count}");
+        Assert("Local: recorte conserva las mayores", recortado.Any(r => r.Category == "Rock" && r.Files.Count == 2));
+        Assert("Local: recorte fusiona el resto en Otros", recortado.Any(r => r.Category == "Otros"));
+
+        Assert("Local: sin archivos devuelve vacío", LocalClassifier.Classify(Array.Empty<string>(), 5, Idioma.Español).Count == 0);
+        Assert("CapToDepth bajo límite no toca", LocalClassifier.CapToDepth(new[] { new ClassificationResult("A", new[] { "x" }) }, 5, "Otros").Count == 1);
+    }
+
+    // ── Clasificador por lotes (fake client) ──────────────────────────
+
+    private static void RunBatchClassifier()
+    {
+        // Fase 1 devuelve categorías por archivo; fase 2 consolida.
+        var files = Enumerable.Range(1, 5).Select(i => $"can{i}.mp3").ToArray();
+        var classifier = new BatchClassifier(prompt =>
+            prompt.Contains("\"archivos\"")
+                ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"rock"},{"archivo":"can2.mp3","categoria":"rock"},{"archivo":"can3.mp3","categoria":"pop"},{"archivo":"can4.mp3","categoria":"pop"},{"archivo":"can5.mp3","categoria":"indie"}]}""")
+                : Task.FromResult("""{"finales":{"Rock":["rock"],"Pop":["pop"]}}"""),
+            batchSize: 2, depth: 10);
+
+        var results = classifier.ClassifyAsync(ClassificationModes.Find("Música")!, "Género", Idioma.Español, files).GetAwaiter().GetResult();
+        Assert("Batch: chunks producen resultado", results.Sum(r => r.Files.Count) == 5, string.Join(",", results.Select(r => $"{r.Category}({r.Files.Count})")));
+        Assert("Batch: consolidación mapeada", results.Any(r => r.Category == "Rock" && r.Files.Count == 2));
+        Assert("Batch: categoría sin mapear va a Otros", results.Any(r => r.Category == "Otros" && r.Files.Count == 1));
+
+        // Lote que falla → archivos a Otros, no detiene el flujo.
+        int call = 0;
+        var failingClassifier = new BatchClassifier(prompt =>
+        {
+            call++;
+            if (call == 1) throw new AiException(0, "network", "corte");
+            return Task.FromResult("no-json");
+        }, batchSize: 2, depth: 10);
+        var failResult = failingClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, files).GetAwaiter().GetResult();
+        Assert("Batch: lote fallido → Otros", failResult.Any(r => r.Category == "Otros" && r.Files.Count == 5), string.Join(",", failResult.Select(r => $"{r.Category}({r.Files.Count})")));
+
+        // Recorte por profundidad tras consolidación (3 finales, depth 2).
+        var recorteClassifier = new BatchClassifier(prompt =>
+            prompt.Contains("\"archivos\"")
+                ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"a"},{"archivo":"can2.mp3","categoria":"b"}]}""")
+                : Task.FromResult("""{"finales":{"A":["a"],"B":["b"],"C":["a"]}}"""),
+            batchSize: 2, depth: 2);
+        var recorteResult = recorteClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3" }).GetAwaiter().GetResult();
+        Assert("Batch: recorte por profundidad", recorteResult.Count <= 2, $"count {recorteResult.Count}");
+
+        // Consolidación fallida → se conservan categorías crudas.
+        var falloConsolidacion = new BatchClassifier(prompt =>
+            prompt.Contains("\"archivos\"")
+                ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"rock"}]}""")
+                : Task.FromException<string>(new AiException(0, "network", "corte en consolidación")),
+            batchSize: 2, depth: 10);
+        var rawResult = falloConsolidacion.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3" }).GetAwaiter().GetResult();
+        Assert("Batch: consolidación fallida conserva crudas", rawResult.Any(r => r.Category == "rock" && r.Files.Count == 1), string.Join(",", rawResult.Select(r => $"{r.Category}({r.Files.Count})")));
     }
 
     // ── Organizador ────────────────────────────────────────────────────
@@ -157,10 +252,12 @@ public static class SelfTest
 
     private static void RunTranslations()
     {
-        Assert("Tr ES PromptCopied", Translations.Get("PromptCopied", Idioma.Español) == "Prompt copiado a tu portapapeles");
+        Assert("Tr ES MethodLocal", Translations.Get("MethodLocal", Idioma.Español) == "Local");
         Assert("Tr EN no cae en ES", Translations.Get("ActionButton", Idioma.Inglés) == "Organize");
         Assert("Tr Modo label EN", Translations.ModeLabel("Música", Idioma.Inglés) == "🎵 Music");
         Assert("Tr modos existen", ClassificationModes.All.Count == 5);
+        Assert("Tr Otros EN", Translations.Get("Otros", Idioma.Inglés) == "Others");
+        Assert("Tr BatchSize ES", Translations.Get("BatchSize", Idioma.Español) == "Tamaño de lote");
     }
 
     // ── Modos ──────────────────────────────────────────────────────────
@@ -381,13 +478,9 @@ public static class SelfTest
             Assert("E2E: filtro excluye .exe/.dll", files.Count == 4, $"got {files.Count}");
 
             var (mode, criterion, depth) = (ClassificationModes.Find("Música")!, "Género", 5);
-            string prompt = PromptGenerator.Generate(mode, criterion, depth, Idioma.Español, files);
-            Assert("E2E: prompt con archivos", files.All(prompt.Contains));
-
-            string response = """{"categorias":{"Rock":["cancion1.mp3","cancion2.mp3"],"Papeles":["documento1.pdf","foto1.jpg"]}}""";
-            var results = ResponseParser.Parse(response, files, Idioma.Español);
-            Assert("E2E: categorías parseadas", results.Count == 2);
-            Assert("E2E: archivos casados", results.Sum(r => r.Files.Count) == 4);
+            // E2E vía clasificador local (algoritmo determinista, sin LLM).
+            var results = LocalClassifier.Classify(files, depth, Idioma.Español);
+            Assert("E2E: local clasifica todo", results.Sum(r => r.Files.Count) == 4, string.Join(",", results.Select(r => $"{r.Category}({r.Files.Count})")));
 
             string dest = Path.Combine(root, "out");
             Directory.CreateDirectory(Path.Combine(root, "otra_carpeta"));
@@ -398,8 +491,6 @@ public static class SelfTest
             filePaths["extra1.mp3"] = Path.Combine(root, "otra_carpeta", "extra1.mp3");
             var result = FileOrganizer.Organize(filePaths, dest, results, copy: false, CancellationToken.None);
             Assert("E2E: organizados", result.Processed == 4 && result.Errors == 0, $"p{result.Processed} e{result.Errors}");
-            Assert("E2E: carpeta Rock", Directory.Exists(Path.Combine(dest, "Rock")) && File.Exists(Path.Combine(dest, "Rock", "cancion1.mp3")));
-            Assert("E2E: carpeta Papeles", Directory.Exists(Path.Combine(dest, "Papeles")) && File.Exists(Path.Combine(dest, "Papeles", "foto1.jpg")));
             Assert("E2E: origen vacío tras mover", !File.Exists(Path.Combine(root, "cancion1.mp3")));
         }
         finally

@@ -25,14 +25,12 @@ public partial class App : System.Windows.Application
     private readonly AiClient _aiClient = new();
 
     private List<ClassificationResult> _results = new();
-    private string _currentPrompt = "";
     private CancellationTokenSource? _organizeCts;
     private bool _organizing;
     private int _organizeTotal;
 
     private readonly List<BaseFileItem> _masterFiles = new();
     private readonly Dictionary<string, DateTime> _fileDates = new();
-    private DedupPanel? _dedupPanel;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -54,15 +52,7 @@ public partial class App : System.Windows.Application
 
         InitWindow(output);
         _options = new OptionsPanel();
-        _dedupPanel = new DedupPanel();
-        var rightColumn = new Grid();
-        rightColumn.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        rightColumn.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        Grid.SetRow(_dedupPanel, 0);
-        Grid.SetRow(_options, 1);
-        rightColumn.Children.Add(_dedupPanel);
-        rightColumn.Children.Add(_options);
-        _window!.MainControl.OptionsContent.Content = rightColumn;
+        _window!.MainControl.OptionsContent.Content = _options;
         _window.MainControl.FileListFooterContent.Content = CreateAddFolderButton();
         WireEvents();
         ApplyLanguage();
@@ -212,24 +202,19 @@ public partial class App : System.Windows.Application
             SavePreferences();
         };
 
-        _options!.GeneratePromptBtn.Click += (_, _) => RegeneratePrompt();
-        _options.CopyPromptBtn.Click += (_, _) => CopyPrompt();
-        _options.PasteResponseBtn.Click += (_, _) => PasteResponse();
-        _options.LoadResponseBtn.Click += (_, _) => LoadResponse();
-        _options.ClassifyBtn.Click += (_, _) => _ = ClassifyAsync();
+        _options!.ClassifyBtn.Click += (_, _) => _ = ClassifyAsync();
         _options.ByokButton.Click += (_, _) => OpenByokDialog();
 
-        _options.ModeCombo.SelectionChanged += (_, _) => RegeneratePrompt();
-        _options.CriterionCombo.SelectionChanged += (_, _) => RegeneratePrompt();
-        _options.DepthCombo.SelectionChanged += (_, _) => RegeneratePrompt();
-        _options.ResponseBox.TextChanged += (_, _) => _results = new();
+        _options.ModeCombo.SelectionChanged += (_, _) => ResetResults();
+        _options.CriterionCombo.SelectionChanged += (_, _) => ResetResults();
+        _options.DepthCombo.SelectionChanged += (_, _) => ResetResults();
 
-        _dedupPanel!.SameNameCheck.Checked += (_, _) => ApplyDedupFilter();
-        _dedupPanel.SameNameCheck.Unchecked += (_, _) => ApplyDedupFilter();
-        _dedupPanel.MinSizeCheck.Checked += (_, _) => ApplyDedupFilter();
-        _dedupPanel.MinSizeCheck.Unchecked += (_, _) => ApplyDedupFilter();
-        _dedupPanel.MinDateCheck.Checked += (_, _) => ApplyDedupFilter();
-        _dedupPanel.MinDateCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _options.SameNameCheck.Checked += (_, _) => ApplyDedupFilter();
+        _options.SameNameCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _options.MinSizeCheck.Checked += (_, _) => ApplyDedupFilter();
+        _options.MinSizeCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _options.MinDateCheck.Checked += (_, _) => ApplyDedupFilter();
+        _options.MinDateCheck.Unchecked += (_, _) => ApplyDedupFilter();
     }
 
     // ── Archivos ──────────────────────────────────────────────────────
@@ -269,7 +254,7 @@ public partial class App : System.Windows.Application
     {
         var visible = DedupFilter.Keep(_masterFiles,
             f => f.FileName, f => f.FileSize, f => GetFileDate(f.FilePath),
-            _dedupPanel!.SameNameChecked, _dedupPanel.MinSizeChecked, _dedupPanel.MinDateChecked);
+            _options!.SameNameChecked, _options.MinSizeChecked, _options.MinDateChecked);
 
         _window!.Files.Clear();
         foreach (var item in visible.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase))
@@ -277,7 +262,6 @@ public partial class App : System.Windows.Application
 
         ResetResults();
         _window.MainControl.UpdateCounters();
-        RegeneratePrompt();
     }
 
     private AddFolderButton CreateAddFolderButton()
@@ -307,7 +291,7 @@ public partial class App : System.Windows.Application
         AddFiles(added);
     }
 
-    // ── Prompt ────────────────────────────────────────────────────────
+    // ── Clasificación ─────────────────────────────────────────────────
 
     private (ClassificationMode mode, string criterion, int depth) GetOptions()
     {
@@ -320,59 +304,6 @@ public partial class App : System.Windows.Application
     private string[] GetFileNames() =>
         _window!.Files.Where(f => !FileFilters.IsSystemFile(f.FileName)).Select(f => f.FileName).ToArray();
 
-    private void RegeneratePrompt()
-    {
-        var (mode, criterion, depth) = GetOptions();
-        var files = GetFileNames();
-        _currentPrompt = files.Length > 0
-            ? PromptGenerator.Generate(mode, criterion, depth, Translations.Current, files)
-            : "";
-    }
-
-    private void CopyPrompt()
-    {
-        if (string.IsNullOrEmpty(_currentPrompt))
-        {
-            MessageBox.Show(Translations.Get("PromptEmpty"), Translations.Get("Error"),
-                MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-        try
-        {
-            Clipboard.SetText(_currentPrompt);
-            ShowStatus(Translations.Get("PromptCopied"));
-        }
-        catch { }
-    }
-
-    private void PasteResponse()
-    {
-        try
-        {
-            if (Clipboard.ContainsText())
-                _options!.ResponseBox.Text = Clipboard.GetText();
-            else
-                MessageBox.Show(Translations.Get("NoneInClipboard"), Translations.Get("Error"),
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch { }
-    }
-
-    private void LoadResponse()
-    {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Texto|*.txt;*.json" };
-        if (dialog.ShowDialog() == true)
-        {
-            try { _options!.ResponseBox.Text = File.ReadAllText(dialog.FileName); }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, Translations.Get("Error"), MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-    }
-
-    // ── Clasificación ─────────────────────────────────────────────────
-
     private async Task ClassifyAsync()
     {
         var files = GetFileNames();
@@ -383,33 +314,26 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        if (_options!.MethodAuto.IsChecked == true)
-            await ClassifyAuto(files);
+        if (_options!.MethodIa.IsChecked == true)
+            await ClassifyIa(files);
         else
-            ClassifyManual(files);
+            ClassifyLocal(files);
     }
 
-    private void ClassifyManual(string[] files)
+    private void ClassifyLocal(string[] files)
     {
-        string text = _options!.ResponseBox.Text;
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            MessageBox.Show(Translations.Get("PasteFirst"), Translations.Get("Error"),
-                MessageBoxButton.OK, MessageBoxImage.Information);
-            return;
-        }
-        var results = ResponseParser.Parse(text, files, Translations.Current);
+        var (_, _, depth) = GetOptions();
+        var results = LocalClassifier.Classify(files, depth, Translations.Current);
         if (results.Count == 0)
         {
-            string key = text.Contains('{') ? "NoValidCategories" : "JsonNotFound";
-            MessageBox.Show(Translations.Get(key), Translations.Get("Error"),
+            MessageBox.Show(Translations.Get("NoValidCategories"), Translations.Get("Error"),
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         SetResults(results);
     }
 
-    private async Task ClassifyAuto(string[] files)
+    private async Task ClassifyIa(string[] files)
     {
         var provider = _byok.ActiveProvider;
         if (provider == null || _byok.Providers.Count == 0)
@@ -419,14 +343,16 @@ public partial class App : System.Windows.Application
         }
 
         var (mode, criterion, depth) = GetOptions();
-        string prompt = PromptGenerator.Generate(mode, criterion, depth, Translations.Current, files);
+        int batchSize = _options!.BatchSize;
 
         _options!.ClassifyBtn.IsEnabled = false;
-        ShowStatus(Translations.Get("Classifying"));
         try
         {
-            string text = await _aiClient.GenerateAsync(_byok.ActiveProvider!, prompt);
-            var results = ResponseParser.Parse(text, files, Translations.Current);
+            var classifier = new BatchClassifier(
+                prompt => _aiClient.GenerateAsync(_byok.ActiveProvider!, prompt),
+                batchSize, depth);
+            var results = await classifier.ClassifyAsync(
+                mode, criterion, Translations.Current, files, ShowStatus);
             if (results.Count == 0)
             {
                 MessageBox.Show(Translations.Get("NoValidCategories"), Translations.Get("Error"),
@@ -442,7 +368,7 @@ public partial class App : System.Windows.Application
         }
         finally
         {
-            _options.ClassifyBtn.IsEnabled = true;
+            _options!.ClassifyBtn.IsEnabled = true;
         }
     }
 

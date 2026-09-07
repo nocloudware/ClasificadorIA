@@ -7,48 +7,6 @@ public static class ResponseParser
 {
     private static string Normalize(string name) => name.Trim().ToUpperInvariant();
 
-    public static List<ClassificationResult> Parse(string response, IEnumerable<string> realFiles, Idioma idioma)
-    {
-        if (string.IsNullOrWhiteSpace(response))
-            return new List<ClassificationResult>();
-
-        var result = new List<ClassificationResult>();
-        using var doc = ParseJson(response);
-        if (doc == null) return result;
-
-        var root = doc.RootElement;
-        var categorias = FindCategorias(root, idioma);
-        if (categorias is not JsonElement cats || cats.ValueKind != JsonValueKind.Object)
-            return result;
-
-        var realByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var real in realFiles)
-        {
-            string key = Normalize(real);
-            realByName.TryAdd(key, real);
-        }
-
-        foreach (var prop in cats.EnumerateObject())
-        {
-            string category = FileOrganizer.SaneateFolderName(prop.Name);
-            if (string.IsNullOrEmpty(category)) continue;
-
-            var matched = new List<string>();
-            foreach (var nameToken in prop.Value.EnumerateArray())
-            {
-                string? name = nameToken.ValueKind == JsonValueKind.String ? nameToken.GetString() : null;
-                if (string.IsNullOrEmpty(name)) continue;
-                if (realByName.TryGetValue(Normalize(name), out string? real))
-                    matched.Add(real);
-            }
-
-            if (matched.Count > 0)
-                result.Add(new ClassificationResult(category, matched));
-        }
-
-        return result;
-    }
-
     private static JsonDocument? ParseJson(string response)
     {
         int start = response.IndexOf('{');
@@ -64,13 +22,78 @@ public static class ResponseParser
         }
     }
 
-    private static JsonElement? FindCategorias(JsonElement root, Idioma idioma)
+    // {"archivos":[{archivo,categoria}]} / EN {"files":[{file,category}]}
+    public static Dictionary<string, string> ParseBatchAssignments(string response, IEnumerable<string> realFiles, Idioma idioma)
     {
-        string primary = idioma == Idioma.Español ? "categorias" : "categories";
-        string fallback = idioma == Idioma.Español ? "categories" : "categorias";
+        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(response)) return result;
+
+        using var doc = ParseJson(response);
+        if (doc == null) return result;
+        var root = doc.RootElement;
+
+        var realByName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var real in realFiles)
+            realByName.TryAdd(Normalize(real), real);
+
+        string primary = idioma == Idioma.Español ? "archivos" : "files";
+        string fallback = idioma == Idioma.Español ? "files" : "archivos";
+        JsonElement? arr = null;
         foreach (var key in new[] { primary, fallback })
-            if (root.TryGetProperty(key, out var cats) && cats.ValueKind == JsonValueKind.Object)
-                return cats;
-        return null;
+            if (root.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.Array) { arr = el; break; }
+        if (arr == null) return result;
+
+        string fileKey = idioma == Idioma.Español ? "archivo" : "file";
+        string catKey = idioma == Idioma.Español ? "categoria" : "category";
+        string fileKeyFallback = idioma == Idioma.Español ? "file" : "archivo";
+        string catKeyFallback = idioma == Idioma.Español ? "category" : "categoria";
+
+        foreach (var entry in arr.Value.EnumerateArray())
+        {
+            if (entry.ValueKind != JsonValueKind.Object) continue;
+            string? name = null, cat = null;
+            foreach (var key in new[] { fileKey, fileKeyFallback })
+                if (entry.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.String) { name = el.GetString(); break; }
+            foreach (var key in new[] { catKey, catKeyFallback })
+                if (entry.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.String) { cat = el.GetString(); break; }
+
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(cat)) continue;
+            cat = FileOrganizer.SaneateFolderName(cat);
+            if (string.IsNullOrEmpty(cat)) continue;
+            if (realByName.TryGetValue(Normalize(name), out string? real))
+                result.TryAdd(real, cat);
+        }
+        return result;
+    }
+
+    // {"finales":{"Final":["cat1","cat2"]}} / EN {"final":{...}}
+    public static Dictionary<string, string[]>? ParseConsolidationMap(string response, Idioma idioma)
+    {
+        if (string.IsNullOrWhiteSpace(response)) return null;
+        using var doc = ParseJson(response);
+        if (doc == null) return null;
+        var root = doc.RootElement;
+
+        string primary = idioma == Idioma.Español ? "finales" : "final";
+        string fallback = idioma == Idioma.Español ? "final" : "finales";
+        JsonElement? map = null;
+        foreach (var key in new[] { primary, fallback })
+            if (root.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.Object) { map = el; break; }
+        if (map == null) return null;
+
+        var result = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
+        foreach (var prop in map.Value.EnumerateObject())
+        {
+            string cat = FileOrganizer.SaneateFolderName(prop.Name);
+            if (string.IsNullOrEmpty(cat)) continue;
+            var sources = new List<string>();
+            if (prop.Value.ValueKind == JsonValueKind.Array)
+                foreach (var s in prop.Value.EnumerateArray())
+                    if (s.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(s.GetString()))
+                        sources.Add(s.GetString()!);
+            if (sources.Count > 0)
+                result[cat] = sources.ToArray();
+        }
+        return result.Count > 0 ? result : null;
     }
 }
