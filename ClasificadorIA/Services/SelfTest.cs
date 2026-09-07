@@ -134,6 +134,12 @@ public static class SelfTest
         var noTema = LocalClassifier.Classify(stop, 5, Idioma.Español);
         Assert("Local: stopwords ignoradas (sin tema)", !noTema.Any(r => r.Category == "De" || r.Category == "El" || r.Category == "La"));
 
+        // Sufijo de serie en casi todos los archivos no colapsa todo en una categoría.
+        var serie = new[] { "Marte, el planeta rojo ｜ Ciencia Para Dormir.m4a", "La Luna y su origen ｜ Ciencia Para Dormir.m4a", "Neptuno, gigante helado ｜ Ciencia Para Dormir.m4a", "La Luna vista de cerca ｜ Ciencia Para Dormir.m4a" };
+        var serieRes = LocalClassifier.Classify(serie, 5, Idioma.Español);
+        Assert("Local: sufijo de serie no crea categoría gigante", !serieRes.Any(r => r.Category == "Ciencia" || r.Category == "Dormir"), string.Join(",", serieRes.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Local: subtema real sobre sufijo de serie (luna)", serieRes.Any(r => r.Category == "Luna" && r.Files.Count == 2), string.Join(",", serieRes.Select(b => $"{b.Category}({b.Files.Count})")));
+
         // Recorte por profundidad.
         var many = new[] { "rock-a.mp3", "rock-b.mp3", "pop-a.mp3", "pop-b.mp3", "jazz-a.mp3", "jazz-b.mp3", "folk-a.mp3", "folk-b.mp3", "solo-x.mp3" };
         var recortado = LocalClassifier.Classify(many, 3, Idioma.Español);

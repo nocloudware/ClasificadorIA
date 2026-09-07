@@ -10,7 +10,7 @@ public static class LocalClassifier
     private static readonly HashSet<string> Stopwords = new(StringComparer.OrdinalIgnoreCase)
     {
         // ES
-        "el", "la", "los", "las", "de", "del", "al", "a", "y", "e", "o", "u", "en", "con", "por", "para", "un", "una", "unos", "unas", "que", "como",
+        "el", "la", "los", "las", "de", "del", "al", "a", "y", "e", "o", "u", "en", "con", "por", "para", "un", "una", "unos", "unas", "que", "qué", "como", "cómo", "más",
         // EN
         "the", "of", "and", "to", "in", "on", "for", "with", "is", "are", "was", "were", "a", "an"
     };
@@ -35,6 +35,9 @@ public static class LocalClassifier
         }
 
         // Categoría por tema: token compartido más frecuente que contiene el archivo.
+        // Un token en casi todos los archivos es el tema de la carpeta (p. ej. un sufijo de serie),
+        // no un subtema: se descarta para no colapsar todo en una sola categoría.
+        double coverLimit = filenames.Count * 0.75;
         var topicByFile = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (file, tokens) in tokensByFile)
         {
@@ -42,7 +45,7 @@ public static class LocalClassifier
             int bestFreq = 0;
             foreach (var t in tokens)
             {
-                if (!tokenFreq.TryGetValue(t, out int freq) || freq < 2 || freq <= bestFreq) continue;
+                if (!tokenFreq.TryGetValue(t, out int freq) || freq < 2 || freq > coverLimit || freq <= bestFreq) continue;
                 best = t;
                 bestFreq = freq;
             }
