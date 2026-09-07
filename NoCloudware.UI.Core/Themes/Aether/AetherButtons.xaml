@@ -71,18 +71,6 @@
                                                   TextElement.Foreground="{TemplateBinding Foreground}"
                                                   TextElement.FontSize="{TemplateBinding FontSize}"/>
 
-                                <TextBox x:Name="PART_EditableTextBox"
-                                         Grid.Column="0"
-                                         Background="Transparent"
-                                         BorderThickness="0"
-                                         Padding="{TemplateBinding Padding}"
-                                         Foreground="{TemplateBinding Foreground}"
-                                         FontSize="{TemplateBinding FontSize}"
-                                         VerticalContentAlignment="Center"
-                                         CaretBrush="{TemplateBinding Foreground}"
-                                         FocusVisualStyle="{x:Null}"
-                                         Visibility="Collapsed"/>
-
                                 <ToggleButton x:Name="ToggleButton"
                                               Grid.Column="0"
                                               Grid.ColumnSpan="2"
@@ -135,10 +123,6 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="MainBorder" Property="Opacity" Value="0.5"/>
-                        </Trigger>
-                        <Trigger Property="IsEditable" Value="True">
-                            <Setter TargetName="ContentSite" Property="Visibility" Value="Collapsed"/>
-                            <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

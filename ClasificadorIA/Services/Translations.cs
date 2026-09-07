@@ -140,7 +140,7 @@ public static class Translations
         ["Scheme"] = ("Esquema", "Scheme"),
         ["LoadingModels"] = ("Cargando modelos…", "Loading models…"),
         ["ModelsLoaded"] = ("{0} modelos disponibles", "{0} models available"),
-        ["ModelHint"] = ("Selecciona o escribe un modelo", "Select or type a model"),
+        ["ModelHint"] = ("Selecciona un modelo disponible", "Select an available model"),
         ["ByokNeedsFields"] = ("Completa base URL y modelo.", "Complete base URL and model."),
         ["ByokOkLabel"] = ("Guardado", "Saved"),
         ["ByokErrorTitle"] = ("BYOK", "BYOK"),

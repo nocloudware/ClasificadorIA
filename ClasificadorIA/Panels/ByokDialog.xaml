@@ -109,7 +109,6 @@
                     </Button>
                     <ComboBox x:Name="ModelCombo"
                       Style="{DynamicResource ThemedComboBoxStyle}"
-                      IsEditable="True"
                       ToolTip="{Binding ModelHint, RelativeSource={RelativeSource AncestorType=Window}}"/>
                 </DockPanel>
                 <TextBlock Text="{Binding ModelHint, RelativeSource={RelativeSource AncestorType=Window}}"
