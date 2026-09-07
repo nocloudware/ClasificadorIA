@@ -29,12 +29,8 @@ public partial class OptionsPanel : UserControl
     {
         get
         {
-            double? value = BatchSizeBox.Value;
-            if (value is null || double.IsNaN(value.Value) || value.Value < BatchSizeBox.Minimum)
-                return (int)Math.Round(BatchSizeBox.Minimum);
-            if (value.Value > BatchSizeBox.Maximum)
-                return (int)Math.Round(BatchSizeBox.Maximum);
-            return (int)Math.Round(value.Value);
+            int tag = (BatchSizeCombo.SelectedItem as ComboBoxItem)?.Tag as int? ?? 20;
+            return tag;
         }
     }
 
@@ -45,7 +41,7 @@ public partial class OptionsPanel : UserControl
         bool ia = IsIaMethod;
         ModeCombo.IsEnabled = ia;
         CriterionCombo.IsEnabled = ia;
-        BatchSizeBox.IsEnabled = ia;
+        BatchSizeCombo.IsEnabled = ia;
         ByokButton.Visibility = ia ? Visibility.Visible : Visibility.Collapsed;
         PanelHintText.Text = ia ? Translations.Get("AutoByokHint") : "";
     }
@@ -87,6 +83,18 @@ public partial class OptionsPanel : UserControl
             .Select(x => new ComboBoxItem { Content = x.Content, Tag = x.Tag })
             .ToList<ComboBoxItem>();
         DepthCombo.SelectedIndex = depthIndex >= 0 && depthIndex < DepthCombo.Items.Count ? depthIndex : 0;
+
+        int batchIndex = BatchSizeCombo.SelectedIndex;
+        BatchSizeCombo.ItemsSource = new[]
+            {
+                (Content: Translations.Get("BatchAll"), Tag: int.MaxValue),
+                (Content: "10", Tag: 10),
+                (Content: "20", Tag: 20),
+                (Content: "50", Tag: 50),
+            }
+            .Select(x => new ComboBoxItem { Content = x.Content, Tag = x.Tag })
+            .ToList<ComboBoxItem>();
+        BatchSizeCombo.SelectedIndex = batchIndex >= 0 && batchIndex < BatchSizeCombo.Items.Count ? batchIndex : 1;
     }
 
     private void ModeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)

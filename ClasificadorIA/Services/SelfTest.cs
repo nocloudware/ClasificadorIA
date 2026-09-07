@@ -197,6 +197,18 @@ public static class SelfTest
         }
         Assert("Batch: error no-cuota se propaga", propagado && noRetryCalls == 1, $"calls={noRetryCalls}, propagado={propagado}");
 
+        // "Todos": batchSize enorme → un único lote.
+        int allCalls = 0;
+        var allClassifier = new BatchClassifier(prompt =>
+        {
+            allCalls++;
+            return prompt.Contains("\"archivos\"")
+                ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"rock"},{"archivo":"can2.mp3","categoria":"rock"}]}""")
+                : Task.FromResult("""{"finales":{"Rock":["rock"]}}""");
+        }, batchSize: int.MaxValue, depth: 10);
+        var allResult = allClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3" }).GetAwaiter().GetResult();
+        Assert("Batch: Todos → una sola llamada de asignación", allCalls == 2, $"calls={allCalls}");
+
         // Recorte por profundidad tras consolidación (3 finales, depth 2).
         var recorteClassifier = new BatchClassifier(prompt =>
             prompt.Contains("\"archivos\"")

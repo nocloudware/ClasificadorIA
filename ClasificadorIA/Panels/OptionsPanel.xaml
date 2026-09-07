@@ -94,13 +94,9 @@
                 <!-- 4. Tamaño de lote -->
                 <TextBlock x:Name="BatchSizeLabel"
                            Style="{DynamicResource AetherCaptionStyle}"/>
-                <ui:NumberBox x:Name="BatchSizeBox"
-                              Minimum="10"
-                              Maximum="50"
-                              Value="20"
-                              SmallChange="5"
-                              SpinButtonPlacementMode="Compact"
-                              Margin="0,4,0,6"/>
+                <ComboBox x:Name="BatchSizeCombo"
+                          Style="{DynamicResource ThemedComboBoxStyle}"
+                          Margin="0,4,0,6"/>
 
                 <!-- 5. Copiar / Mover -->
                 <TextBlock x:Name="OutputModeLabel"

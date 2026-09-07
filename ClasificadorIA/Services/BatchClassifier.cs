@@ -27,7 +27,7 @@ public sealed class BatchClassifier
         var failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         int total = fileNames.Count;
-        int batchCount = (total + _batchSize - 1) / _batchSize;
+        int batchCount = (int)Math.Max(1, ((long)total + _batchSize - 1) / _batchSize);
         int batchIndex = 0;
 
         // Fase 1: asignación por lote.

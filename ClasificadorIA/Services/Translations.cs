@@ -51,6 +51,7 @@ public static class Translations
         ["MethodLocal"] = ("Local", "Local"),
         ["MethodIA"] = ("IA", "IA"),
         ["BatchSize"] = ("Tamaño de lote", "Batch size"),
+        ["BatchAll"] = ("Todos (un solo lote)", "All (single batch)"),
         ["BatchStatus"] = ("Clasificando lote {0}/{1}…", "Classifying batch {0}/{1}…"),
         ["BatchRetryStatus"] = ("Lote {0}/{1}: cuota agotada, reintento {2} en {3}s…", "Batch {0}/{1}: rate-limited, retry {2} in {3}s…"),
         ["Otros"] = ("Otros", "Others"),
