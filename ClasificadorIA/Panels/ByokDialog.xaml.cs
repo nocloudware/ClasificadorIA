@@ -142,12 +142,11 @@ public partial class ByokDialog : Window
 
     private void RebindModelCombo(AiProvider p)
     {
+        if (!string.IsNullOrEmpty(p.SelectedModel)
+            && !p.Models.Contains(p.SelectedModel, StringComparer.OrdinalIgnoreCase))
+            p.Models.Add(p.SelectedModel);
         ModelCombo.ItemsSource = p.Models;
-        ModelCombo.Text = p.SelectedModel ?? "";
-        if (!string.IsNullOrEmpty(p.SelectedModel) && p.Models.Contains(p.SelectedModel, StringComparer.OrdinalIgnoreCase))
-            ModelCombo.SelectedItem = p.SelectedModel;
-        else
-            ModelCombo.SelectedItem = null;
+        ModelCombo.SelectedItem = string.IsNullOrEmpty(p.SelectedModel) ? null : p.SelectedModel;
     }
 
     private void ApplyFieldEdits(AiProvider p)
