@@ -168,16 +168,34 @@ public static class SelfTest
         Assert("Batch: consolidación mapeada", results.Any(r => r.Category == "Rock" && r.Files.Count == 2));
         Assert("Batch: categoría sin mapear va a Otros", results.Any(r => r.Category == "Otros" && r.Files.Count == 1));
 
-        // Lote que falla → archivos a Otros, no detiene el flujo.
-        int call = 0;
-        var failingClassifier = new BatchClassifier(prompt =>
+        // Cuota (rate-limit): reintenta con la espera que pide el proveedor y termina bien.
+        int attempts = 0;
+        var retryClassifier = new BatchClassifier(prompt =>
         {
-            call++;
-            if (call == 1) throw new AiException(0, "network", "corte");
-            return Task.FromResult("no-json");
+            attempts++;
+            if (attempts < 3) return Task.FromException<string>(new AiException(429, "RESOURCE_EXHAUSTED", "Please retry in 0s."));
+            return Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"rock"},{"archivo":"can2.mp3","categoria":"pop"}]}""");
         }, batchSize: 2, depth: 10);
-        var failResult = failingClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, files).GetAwaiter().GetResult();
-        Assert("Batch: lote fallido → Otros", failResult.Any(r => r.Category == "Otros" && r.Files.Count == 5), string.Join(",", failResult.Select(r => $"{r.Category}({r.Files.Count})")));
+        var retryResult = retryClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3" }).GetAwaiter().GetResult();
+        Assert("Batch: cuota reintenta hasta resolver", retryResult.Sum(r => r.Files.Count) == 2, string.Join(",", retryResult.Select(r => $"{r.Category}({r.Files.Count})")));
+
+        // Error que no es de cuota → se propaga (no se miente con "Otros").
+        int noRetryCalls = 0;
+        var hardFailClassifier = new BatchClassifier(_ =>
+        {
+            noRetryCalls++;
+            return Task.FromException<string>(new AiException(0, "network", "corte"));
+        }, batchSize: 2, depth: 10);
+        bool propagado = false;
+        try
+        {
+            hardFailClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, files).GetAwaiter().GetResult();
+        }
+        catch (AiException)
+        {
+            propagado = true;
+        }
+        Assert("Batch: error no-cuota se propaga", propagado && noRetryCalls == 1, $"calls={noRetryCalls}, propagado={propagado}");
 
         // Recorte por profundidad tras consolidación (3 finales, depth 2).
         var recorteClassifier = new BatchClassifier(prompt =>

@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using ClasificadorIA.Models;
 
 namespace ClasificadorIA.Services;
@@ -37,19 +39,13 @@ public sealed class BatchClassifier
 
             var batchFiles = chunk.ToList();
             string prompt = PromptGenerator.AssignmentBatch(mode, criterion, idioma, batchFiles);
-            try
-            {
-                string text = await _generate(prompt).ConfigureAwait(false);
-                var parsed = ResponseParser.ParseBatchAssignments(text, batchFiles, idioma);
-                foreach (var f in batchFiles)
-                    if (parsed.TryGetValue(f, out string? cat)) assignments[f] = cat;
-                foreach (var f in batchFiles)
-                    if (!assignments.ContainsKey(f)) failed.Add(f);
-            }
-            catch (AiException)
-            {
-                foreach (var f in batchFiles) failed.Add(f);
-            }
+            // Si falla, reintente (plan gratuito pide espera); si sigue fallando, aborte con el error real.
+            string text = await GenerateWithRetryAsync(prompt, onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
+            var parsed = ResponseParser.ParseBatchAssignments(text, batchFiles, idioma);
+            foreach (var f in batchFiles)
+                if (parsed.TryGetValue(f, out string? cat)) assignments[f] = cat;
+            foreach (var f in batchFiles)
+                if (!assignments.ContainsKey(f)) failed.Add(f);
         }
 
         string others = Translations.Get("Otros", idioma);
@@ -64,7 +60,7 @@ public sealed class BatchClassifier
             string prompt = PromptGenerator.Consolidate(categories, _depth, idioma);
             try
             {
-                string text = await _generate(prompt).ConfigureAwait(false);
+                string text = await GenerateWithRetryAsync(prompt, onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
                 var map = ResponseParser.ParseConsolidationMap(text, idioma);
                 if (map != null)
                 {
@@ -118,5 +114,45 @@ public sealed class BatchClassifier
     {
         for (int i = 0; i < items.Count; i += size)
             yield return items.Skip(i).Take(size);
+    }
+
+    private async Task<string> GenerateWithRetryAsync(
+        string prompt, Action<string>? onStatus, int batchIndex, int batchCount, Idioma idioma, CancellationToken ct)
+    {
+        const int maxAttempts = 3;
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await _generate(prompt).ConfigureAwait(false);
+            }
+            catch (AiException ex) when (IsRateLimited(ex) && attempt < maxAttempts)
+            {
+                int waitSec = RetryDelaySeconds(ex.Message);
+                onStatus?.Invoke(string.Format(Translations.Get("BatchRetryStatus", idioma), batchIndex, batchCount, attempt, waitSec));
+                try { await Task.Delay(TimeSpan.FromSeconds(waitSec), ct).ConfigureAwait(false); }
+                catch (OperationCanceledException) { throw; }
+            }
+        }
+    }
+
+    // Cuota/rate-limit del proveedor (p. ej. plan gratuito de Gemini): reintentable.
+    private static bool IsRateLimited(AiException ex) =>
+        ex.StatusCode == 429 ||
+        ex.ErrorCode?.Contains("rate_limit", StringComparison.OrdinalIgnoreCase) == true ||
+        ex.ErrorCode?.Contains("exhausted", StringComparison.OrdinalIgnoreCase) == true ||
+        ex.ErrorCode?.Contains("quota", StringComparison.OrdinalIgnoreCase) == true ||
+        ex.Message.Contains("retry", StringComparison.OrdinalIgnoreCase) ||
+        ex.Message.Contains("quota", StringComparison.OrdinalIgnoreCase);
+
+    // Gemini sugiere "Please retry in 42.099304162s." → usamos ese número, con tope.
+    private static int RetryDelaySeconds(string message)
+    {
+        const int fallback = 10;
+        var m = Regex.Match(message, @"retry in\s+([\d.]+)\s*s", RegexOptions.IgnoreCase);
+        if (!m.Success) return fallback;
+        if (!double.TryParse(m.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double secs))
+            return fallback;
+        return (int)Math.Min(Math.Max(secs, 1), 120);
     }
 }
