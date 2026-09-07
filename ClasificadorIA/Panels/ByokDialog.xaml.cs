@@ -35,14 +35,13 @@ public partial class ByokDialog : Window
     public string ByokDialogTitle => Translations.Get("ByokTitle", _idioma);
     public string ByokDialogSubtitle => Translations.Get("ByokDescription", _idioma);
     public string ProviderLabel => Translations.Get("Provider", _idioma);
-    public string NameLabel => Translations.Get("Name", _idioma);
     public string SchemeLabel => Translations.Get("Scheme", _idioma);
     public string BaseUrlLabel => Translations.Get("BaseUrl", _idioma);
     public string ApiKeyLabel => Translations.Get("ApiKey", _idioma);
     public string ModelLabel => Translations.Get("Model", _idioma);
-    public string ReloadModelsLabel => Translations.Get("ReloadModels", _idioma);
     public string ModelHint => Translations.Get("ModelHint", _idioma);
     public string TemperatureLabel => Translations.Get("Temperature", _idioma);
+    public string TemperatureHint => Translations.Get("TemperatureHint", _idioma);
     public string DeleteLabel => Translations.Get("Delete", _idioma);
     public string TestConnectionLabel => Translations.Get("TestConnection", _idioma);
     public string SaveLabel => Translations.Get("Save", _idioma);
@@ -55,6 +54,7 @@ public partial class ByokDialog : Window
         _working.Providers = new List<AiProvider>(_config.Providers.Select(p => p.Clone()));
         _working.ActiveProviderId = _config.ActiveProviderId;
         RefreshProviderCombo();
+        _ = ReloadModelsAsync();
     }
 
     private static readonly HashSet<string> PresetIds = new(
@@ -105,13 +105,13 @@ public partial class ByokDialog : Window
         _loading = true;
         LoadProviderIntoFields(p);
         _loading = false;
+        _ = ReloadModelsAsync();
     }
 
     private void LoadProviderIntoFields(AiProvider p)
     {
         bool preset = IsPreset(p);
         _loading = true;
-        NameBox.Text = p.Name;
         SchemeCombo.SelectedItem = p.Scheme;
         SchemeCombo.IsEnabled = !preset;
         BaseUrlBox.Text = p.BaseUrl;
@@ -143,18 +143,15 @@ public partial class ByokDialog : Window
     private void RebindModelCombo(AiProvider p)
     {
         ModelCombo.ItemsSource = p.Models;
+        ModelCombo.Text = p.SelectedModel ?? "";
         if (!string.IsNullOrEmpty(p.SelectedModel) && p.Models.Contains(p.SelectedModel, StringComparer.OrdinalIgnoreCase))
             ModelCombo.SelectedItem = p.SelectedModel;
         else
-        {
             ModelCombo.SelectedItem = null;
-            ModelCombo.Text = p.SelectedModel;
-        }
     }
 
     private void ApplyFieldEdits(AiProvider p)
     {
-        p.Name = NameBox.Text.Trim();
         if (SchemeCombo.SelectedItem is AiScheme s && !IsPreset(p))
             p.Scheme = s;
         p.BaseUrl = BaseUrlBox.Text.Trim();
@@ -196,7 +193,39 @@ public partial class ByokDialog : Window
 
     private void ReloadModelsButton_Click(object sender, RoutedEventArgs e) => _ = ReloadModelsAsync();
 
-    private void TestButton_Click(object sender, RoutedEventArgs e) => _ = ReloadModelsAsync();
+    private async void TestButton_Click(object sender, RoutedEventArgs e)
+    {
+        var p = SelectedProvider;
+        if (p == null || p.Id == _addMarker.Id) return;
+        ApplyFieldEdits(p);
+        if (p.RequiresApiKey && string.IsNullOrWhiteSpace(p.ApiKey))
+        {
+            StatusText.Text = string.Format(Translations.Get("ProviderNeedsKey", _idioma), p.Name);
+            return;
+        }
+        string model = ModelCombo.Text?.Trim() ?? p.SelectedModel;
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            StatusText.Text = Translations.Get("ErrNoModel", _idioma);
+            return;
+        }
+        TestButton.IsEnabled = false;
+        StatusText.Text = Translations.Get("LoadingModels", _idioma);
+        try
+        {
+            string reply = await _client.GenerateAsync(p, "ping");
+            StatusText.Text = string.Format(Translations.Get("ConnectionOk", _idioma), p.Name);
+        }
+        catch (AiException ex)
+        {
+            StatusText.Text = string.Format(Translations.Get("ConnectionFailed", _idioma),
+                Translations.AiErrorMessage(ex, _idioma));
+        }
+        finally
+        {
+            TestButton.IsEnabled = true;
+        }
+    }
 
     private async void ApiKeyHyperlink_Click(object sender, RoutedEventArgs e)
     {

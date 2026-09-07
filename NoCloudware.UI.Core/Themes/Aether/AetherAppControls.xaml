@@ -84,13 +84,79 @@
         <Setter Property="Margin" Value="0,8"/>
     </Style>
 
-    <Style x:Key="AetherSliderStyle" TargetType="Slider">
+<Style x:Key="AetherSliderStyle" TargetType="Slider">
         <Setter Property="Foreground" Value="{DynamicResource AccentBrush}"/>
-        <Style.Triggers>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Opacity" Value="0.5"/>
-            </Trigger>
-        </Style.Triggers>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Slider">
+                    <Border Background="Transparent" Padding="0,8">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <!-- Decrease button = filled track (left side, colored) -->
+                            <RepeatButton x:Name="PART_DecreaseButton"
+                                          Grid.Row="0"
+                                          Command="Slider.DecreaseLarge"
+                                          Height="4"
+                                          VerticalAlignment="Center">
+                                <RepeatButton.Template>
+                                    <ControlTemplate TargetType="RepeatButton">
+                                        <Border Background="{DynamicResource AccentBrush}"
+                                                CornerRadius="2"/>
+                                    </ControlTemplate>
+                                </RepeatButton.Template>
+                            </RepeatButton>
+                            <!-- Increase button = unfilled track (right side, background) -->
+                            <RepeatButton x:Name="PART_IncreaseButton"
+                                          Grid.Row="0"
+                                          Command="Slider.IncreaseLarge"
+                                          Height="4"
+                                          VerticalAlignment="Center">
+                                <RepeatButton.Template>
+                                    <ControlTemplate TargetType="RepeatButton">
+                                        <Border Background="{DynamicResource BorderBrush}"
+                                                CornerRadius="2"/>
+                                    </ControlTemplate>
+                                </RepeatButton.Template>
+                            </RepeatButton>
+                            <!-- Thumb -->
+                            <Track x:Name="PART_Track" Grid.Row="0">
+                                <Track.Thumb>
+                                    <Thumb x:Name="SliderThumb">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Ellipse x:Name="ThumbEllipse"
+                                                         Width="16" Height="16"
+                                                         Fill="{DynamicResource AccentBrush}"
+                                                         Stroke="{DynamicResource SurfaceBrush}"
+                                                         StrokeThickness="2.5"
+                                                         Cursor="Hand"/>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="ThumbEllipse" Property="Width" Value="18"/>
+                                                        <Setter TargetName="ThumbEllipse" Property="Height" Value="18"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsDragging" Value="True">
+                                                        <Setter TargetName="ThumbEllipse" Property="Width" Value="20"/>
+                                                        <Setter TargetName="ThumbEllipse" Property="Height" Value="20"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
 </ResourceDictionary>

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         mc:Ignorable="d"
         Title="{Binding ByokDialogTitle, RelativeSource={RelativeSource Self}}"
         Width="520" Height="600"
@@ -56,13 +57,6 @@
                           DisplayMemberPath="Name"
                           SelectionChanged="ProviderCombo_SelectionChanged"/>
 
-                <!-- Nombre -->
-                <TextBlock Text="{Binding NameLabel, RelativeSource={RelativeSource AncestorType=Window}}"
-                           Style="{DynamicResource FieldLabelTextBlockStyle}"
-                           Margin="0,10,0,0"/>
-                <TextBox x:Name="NameBox"
-                         Style="{DynamicResource AetherTextBoxStyle}"/>
-
                 <!-- Esquema -->
                 <TextBlock Text="{Binding SchemeLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                            Style="{DynamicResource FieldLabelTextBlockStyle}"
@@ -106,13 +100,17 @@
                 <DockPanel>
                     <Button x:Name="ReloadModelsButton"
                             DockPanel.Dock="Right"
-                            Content="{Binding ReloadModelsLabel, RelativeSource={RelativeSource AncestorType=Window}}"
                             Style="{DynamicResource SecondaryButtonStyle}"
+                            ToolTip="{Binding ReloadModelsLabel, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Padding="6"
                             Margin="8,0,0,0"
-                            Click="ReloadModelsButton_Click"/>
+                            Click="ReloadModelsButton_Click">
+                        <ui:SymbolIcon Symbol="ArrowClockwise20" FontSize="16"/>
+                    </Button>
                     <ComboBox x:Name="ModelCombo"
                       Style="{DynamicResource ThemedComboBoxStyle}"
-                      IsEditable="True"/>
+                      IsEditable="True"
+                      ToolTip="{Binding ModelHint, RelativeSource={RelativeSource AncestorType=Window}}"/>
                 </DockPanel>
                 <TextBlock Text="{Binding ModelHint, RelativeSource={RelativeSource AncestorType=Window}}"
                            FontSize="11"
