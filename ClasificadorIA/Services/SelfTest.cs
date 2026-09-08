@@ -209,6 +209,25 @@ public static class SelfTest
         var allResult = allClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3" }).GetAwaiter().GetResult();
         Assert("Batch: Todos → una sola llamada de asignación", allCalls == 2, $"calls={allCalls}");
 
+        // Incremental: el lote 2 recibe las categorías del lote 1 como guía.
+        var assignmentPrompts = new List<string>();
+        var incrementalClassifier = new BatchClassifier(prompt =>
+        {
+            string assignment = prompt.Contains("\"archivos\"")
+                ? prompt.Contains("can1.mp3") ? "rock" : "pop"
+                : "";
+            if (prompt.Contains("\"archivos\""))
+            {
+                assignmentPrompts.Add(prompt);
+                return Task.FromResult($$"""{"archivos":[{"archivo":"{{(prompt.Contains("can1.mp3") ? "can1.mp3" : "can2.mp3")}}","categoria":"{{assignment}}"}]}""");
+            }
+            return Task.FromResult("""{"finales":{"Rock":["rock"],"Pop":["pop"]}}""");
+        }, batchSize: 1, depth: 10);
+        incrementalClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3" }).GetAwaiter().GetResult();
+        Assert("Batch: 2 lotes de asignación", assignmentPrompts.Count == 2, $"count={assignmentPrompts.Count}");
+        Assert("Lote 1 no menciona categorías previas", !assignmentPrompts[0].Contains("rock"));
+        Assert("Lote 2 incluye categoría del lote 1", assignmentPrompts[1].Contains("rock"), assignmentPrompts[1]);
+
         // Recorte por profundidad tras consolidación (3 finales, depth 2).
         var recorteClassifier = new BatchClassifier(prompt =>
             prompt.Contains("\"archivos\"")

@@ -30,7 +30,8 @@ public sealed class BatchClassifier
         int batchCount = (int)Math.Max(1, ((long)total + _batchSize - 1) / _batchSize);
         int batchIndex = 0;
 
-        // Fase 1: asignación por lote.
+        // Fase 1: asignación por lote. Las categorías de los lotes anteriores se pasan al siguiente como guía.
+        var knownCategories = new List<string>();
         foreach (var chunk in Chunk(fileNames, _batchSize))
         {
             ct.ThrowIfCancellationRequested();
@@ -38,7 +39,7 @@ public sealed class BatchClassifier
             onStatus?.Invoke(string.Format(Translations.Get("BatchStatus", idioma), batchIndex, batchCount));
 
             var batchFiles = chunk.ToList();
-            string prompt = PromptGenerator.AssignmentBatch(mode, criterion, idioma, batchFiles);
+            string prompt = PromptGenerator.AssignmentBatch(mode, criterion, idioma, batchFiles, knownCategories);
             // Si falla, reintente (plan gratuito pide espera); si sigue fallando, aborte con el error real.
             string text = await GenerateWithRetryAsync(prompt, onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
             var parsed = ResponseParser.ParseBatchAssignments(text, batchFiles, idioma);
@@ -46,6 +47,8 @@ public sealed class BatchClassifier
                 if (parsed.TryGetValue(f, out string? cat)) assignments[f] = cat;
             foreach (var f in batchFiles)
                 if (!assignments.ContainsKey(f)) failed.Add(f);
+            foreach (var cat in parsed.Values)
+                knownCategories.Add(cat);
         }
 
         string others = Translations.Get("Otros", idioma);
