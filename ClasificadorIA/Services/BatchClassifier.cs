@@ -45,6 +45,8 @@ public sealed class BatchClassifier
             // Si falla, reintente (plan gratuito pide espera); si sigue fallando, aborte con el error real.
             string text = await GenerateWithRetryAsync(prompt, onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
             var parsed = ResponseParser.ParseBatchAssignments(text, batchFiles, idioma);
+            AiClient.WriteLog($"PARSE batch {batchIndex}/{batchCount}",
+                $"files={batchFiles.Count} parsed={parsed.Count} missing={batchFiles.Count - parsed.Count}");
             foreach (var f in batchFiles)
                 if (parsed.TryGetValue(f, out string? cat)) assignments[f] = cat;
             foreach (var f in batchFiles)
@@ -67,6 +69,8 @@ public sealed class BatchClassifier
             {
                 string text = await GenerateWithRetryAsync(prompt, onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
                 var map = ResponseParser.ParseConsolidationMap(text, idioma);
+                AiClient.WriteLog("PARSE consolidación",
+                    $"categories={categories.Count} map={(map == null ? "<null>" : map.Count.ToString())}");
                 if (map != null)
                 {
                     var sourceToFinal = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

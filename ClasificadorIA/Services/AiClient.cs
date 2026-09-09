@@ -1,3 +1,4 @@
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
@@ -12,6 +13,17 @@ public sealed class AiClient
 {
     private readonly HttpClient _http;
 
+    /// <summary>Log de depuración: registra todo lo que se envía y recibe de la IA.</summary>
+    public static void WriteLog(string section, string text)
+    {
+        try
+        {
+            string path = Path.Combine(AppContext.BaseDirectory, "ai-debug.log");
+            File.AppendAllText(path, $"\n===== {DateTime.Now:o} [{section}] =====\n{text}\n");
+        }
+        catch { }
+    }
+
     public AiClient(HttpClient? http = null)
     {
         // Sin timeout fijo: el usuario decide cuándo abortar desde la cabina de clasificación
@@ -25,26 +37,31 @@ public sealed class AiClient
     {
         if (provider == null) throw new ArgumentNullException(nameof(provider));
         string model = ResolveModel(provider);
+        WriteLog($"REQ {model}", prompt);
 
         using var req = BuildChatRequest(provider, model, prompt);
         try
         {
             using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseContentRead, ct).ConfigureAwait(false);
             string body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            WriteLog($"RESP {model} ({resp.StatusCode})", body);
             if (!resp.IsSuccessStatusCode)
                 throw BuildException(resp.StatusCode, body);
             return ExtractResponseText(provider, body);
         }
-        catch (AiException)
+        catch (AiException ex)
         {
+            WriteLog($"ERR {model}", $"AiException {ex.StatusCode} {ex.ErrorCode}: {ex.Message}");
             throw;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
+            WriteLog($"ERR {model}", "timeout");
             throw new AiException(0, "timeout", "Timeout de conexión.");
         }
         catch (HttpRequestException ex)
         {
+            WriteLog($"ERR {model}", $"HttpRequestException: {ex.Message}");
             throw new AiException(0, "network", ex.Message);
         }
     }
