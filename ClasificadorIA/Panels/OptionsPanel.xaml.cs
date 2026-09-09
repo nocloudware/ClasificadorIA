@@ -39,8 +39,8 @@ public partial class OptionsPanel : UserControl
     private void ApplyMethodState()
     {
         bool ia = IsIaMethod;
-        ModeCombo.IsEnabled = ia;
-        CriterionCombo.IsEnabled = ia;
+        ModeCombo.IsEnabled = true;
+        CriterionCombo.IsEnabled = true;
         BatchSizeCombo.IsEnabled = ia;
         ByokButton.Visibility = ia ? Visibility.Visible : Visibility.Collapsed;
         PanelHintText.Text = ia ? Translations.Get("AutoByokHint") : "";
