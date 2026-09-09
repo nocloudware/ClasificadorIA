@@ -64,7 +64,10 @@ public static class MetadataClassifier
 
     private static string? FileYear(string path)
     {
-        try { return File.GetLastWriteTime(path).Year.ToString(); }
+        try
+        {
+            return File.Exists(path) ? File.GetLastWriteTime(path).Year.ToString() : null;
+        }
         catch (Exception) { return null; }
     }
 
