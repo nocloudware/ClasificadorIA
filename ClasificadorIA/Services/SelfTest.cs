@@ -495,6 +495,7 @@ public static class SelfTest
         var anthropic = presets.First(p => p.Id == "claude");
         var gemini = presets.First(p => p.Id == "gemini");
         var ollama = presets.First(p => p.Id == "ollama");
+        var deepseek = presets.First(p => p.Id == "deepseek");
         openai.SelectedModel = "gpt-4o-mini";
         anthropic.SelectedModel = "claude-sonnet-4-5";
         gemini.SelectedModel = "gemini-2.5-flash";
@@ -502,11 +503,16 @@ public static class SelfTest
         openai.ApiKey = "sk-test";
         anthropic.ApiKey = "ak-test";
         gemini.ApiKey = "gk-test";
+        deepseek.SelectedModel = "deepseek-v4-flash";
 
         // Payloads
         var openAiPayload = client.BuildPayload(openai, "hola");
         Assert("Payload openai: response_format", openAiPayload.Contains("\"response_format\"") && openAiPayload.Contains("json_object"));
         Assert("Payload openai: modelo", openAiPayload.Contains("gpt-4o-mini"));
+        Assert("Payload openai: sin thinking", !openAiPayload.Contains("\"thinking\""));
+
+        var deepseekPayload = client.BuildPayload(deepseek, "hola");
+        Assert("Payload deepseek: thinking desactivado", deepseekPayload.Contains("\"thinking\":{\"type\":\"disabled\"}"));
 
         var anthropicPayload = client.BuildPayload(anthropic, "hola");
         Assert("Payload anthropic: max_tokens", anthropicPayload.Contains("max_tokens"));
@@ -585,7 +591,6 @@ public static class SelfTest
         Assert("Modelo ausente lanza no_model", Throws(() => client.GetSelectedModel(vacio), 0, "no_model"));
 
         // Errores tempranos
-        var deepseek = presets.First(p => p.Id == "deepseek");
         Assert("Key requerida openai", Throws(() => client.BuildChatRequest(deepseek, "m", "p"), 0, "missing_key"));
     }
 

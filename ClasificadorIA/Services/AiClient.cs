@@ -164,6 +164,8 @@ public sealed class AiClient
         };
         if (provider.JsonMode)
             body["response_format"] = new { type = "json_object" };
+        if (IsDeepSeek(provider))
+            body["thinking"] = new { type = "disabled" };
         return JsonSerializer.Serialize(body);
     }
 
@@ -424,6 +426,12 @@ public sealed class AiClient
     {
         if (provider.Id?.Equals("openrouter", StringComparison.OrdinalIgnoreCase) == true) return true;
         return provider.BaseUrl.Contains("openrouter.ai", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static bool IsDeepSeek(AiProvider provider)
+    {
+        if (provider.Id?.Equals("deepseek", StringComparison.OrdinalIgnoreCase) == true) return true;
+        return provider.BaseUrl.Contains("deepseek.com", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool TryGetTopProviderMaxCompletion(JsonElement model, out int value)
