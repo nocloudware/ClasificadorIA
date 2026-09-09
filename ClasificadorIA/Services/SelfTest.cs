@@ -203,7 +203,7 @@ public static class SelfTest
     {
         // Fase 1 devuelve categorías por archivo; fase 2 consolida.
         var files = Enumerable.Range(1, 5).Select(i => $"can{i}.mp3").ToArray();
-        var classifier = new BatchClassifier(prompt =>
+        var classifier = new BatchClassifier((prompt, _) =>
             prompt.Contains("\"archivos\"")
                 ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"rock"},{"archivo":"can2.mp3","categoria":"rock"},{"archivo":"can3.mp3","categoria":"pop"},{"archivo":"can4.mp3","categoria":"pop"},{"archivo":"can5.mp3","categoria":"indie"}]}""")
                 : Task.FromResult("""{"finales":{"Rock":["rock"],"Pop":["pop"]}}"""),
@@ -216,7 +216,7 @@ public static class SelfTest
 
         // Cuota (rate-limit): reintenta con la espera que pide el proveedor y termina bien.
         int attempts = 0;
-        var retryClassifier = new BatchClassifier(prompt =>
+        var retryClassifier = new BatchClassifier((prompt, _) =>
         {
             attempts++;
             if (attempts < 3) return Task.FromException<string>(new AiException(429, "RESOURCE_EXHAUSTED", "Please retry in 0s."));
@@ -227,7 +227,7 @@ public static class SelfTest
 
         // onBatchStarted anuncia cada lote (1..N) con el conteo correcto.
         var starts = new List<(int Index, int Count)>();
-        var startClassifier = new BatchClassifier(prompt =>
+        var startClassifier = new BatchClassifier((prompt, _) =>
             prompt.Contains("\"archivos\"")
                 ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"a"},{"archivo":"can2.mp3","categoria":"b"},{"archivo":"can3.mp3","categoria":"c"}]}""")
                 : Task.FromResult("""{"finales":{"A":["a"],"B":["b"]}}"""),
@@ -238,7 +238,7 @@ public static class SelfTest
 
         // Cancelación: token cancelado aborta sin llamar al generador.
         int cancelledCalls = 0;
-        var cancelClassifier = new BatchClassifier(prompt =>
+        var cancelClassifier = new BatchClassifier((prompt, _) =>
         {
             cancelledCalls++;
             return Task.FromResult("{}");
@@ -258,7 +258,7 @@ public static class SelfTest
 
         // Error que no es de cuota → se propaga (no se miente con "Otros").
         int noRetryCalls = 0;
-        var hardFailClassifier = new BatchClassifier(_ =>
+        var hardFailClassifier = new BatchClassifier((_, _) =>
         {
             noRetryCalls++;
             return Task.FromException<string>(new AiException(0, "network", "corte"));
@@ -276,7 +276,7 @@ public static class SelfTest
 
         // "Todos": batchSize enorme → un único lote.
         int allCalls = 0;
-        var allClassifier = new BatchClassifier(prompt =>
+        var allClassifier = new BatchClassifier((prompt, _) =>
         {
             allCalls++;
             return prompt.Contains("\"archivos\"")
@@ -286,9 +286,22 @@ public static class SelfTest
         var allResult = allClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3" }).GetAwaiter().GetResult();
         Assert("Batch: Todos → una sola llamada de asignación", allCalls == 2, $"calls={allCalls}");
 
+        // Límite del modelo: lote "Todos" se achica para que quepa (deepseek-chat: 8192 → (8192-2000)/30 = 206 archivos/lote).
+        int shrunkCalls = 0;
+        var shrinkClassifier = new BatchClassifier((prompt, _) =>
+        {
+            shrunkCalls++;
+            return prompt.Contains("\"archivos\"")
+                ? Task.FromResult("""{"archivos":[{"archivo":"223.mp3","categoria":"rock"}]}""")
+                : Task.FromResult("""{"finales":{"Rock":["rock"]}}""");
+        }, batchSize: int.MaxValue, depth: 10, maxOutputLimit: 8192);
+        var shrinkResult = shrinkClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español,
+            Enumerable.Range(1, 500).Select(i => $"{i}.mp3").ToArray()).GetAwaiter().GetResult();
+        Assert("Batch: lote achicado por límite del modelo", shrunkCalls == 4, $"calls={shrunkCalls} (esperado 3 asignaciones + 1 consolidación)");
+
         // Incremental: el lote 2 recibe las categorías del lote 1 como guía.
         var assignmentPrompts = new List<string>();
-        var incrementalClassifier = new BatchClassifier(prompt =>
+        var incrementalClassifier = new BatchClassifier((prompt, _) =>
         {
             string assignment = prompt.Contains("\"archivos\"")
                 ? prompt.Contains("can1.mp3") ? "rock" : "pop"
@@ -306,7 +319,7 @@ public static class SelfTest
         Assert("Lote 2 incluye categoría del lote 1", assignmentPrompts[1].Contains("rock"), assignmentPrompts[1]);
 
         // Recorte por profundidad tras consolidación (3 finales, depth 2).
-        var recorteClassifier = new BatchClassifier(prompt =>
+        var recorteClassifier = new BatchClassifier((prompt, _) =>
             prompt.Contains("\"archivos\"")
                 ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"a"},{"archivo":"can2.mp3","categoria":"b"}]}""")
                 : Task.FromResult("""{"finales":{"A":["a"],"B":["b"],"C":["a"]}}"""),
@@ -315,7 +328,7 @@ public static class SelfTest
         Assert("Batch: recorte por profundidad", recorteResult.Count <= 2, $"count {recorteResult.Count}");
 
         // Consolidación fallida → se conservan categorías crudas.
-        var falloConsolidacion = new BatchClassifier(prompt =>
+        var falloConsolidacion = new BatchClassifier((prompt, _) =>
             prompt.Contains("\"archivos\"")
                 ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"rock"}]}""")
                 : Task.FromException<string>(new AiException(0, "network", "corte en consolidación")),
@@ -463,6 +476,8 @@ public static class SelfTest
             ("ReloadModels", dialog.ReloadModelsLabel),
             ("Temperature", dialog.TemperatureLabel),
             ("TemperatureHint", dialog.TemperatureHint),
+            ("MaxTokens", dialog.MaxTokensLabel),
+            ("MaxTokensHint", dialog.MaxTokensHint),
             ("Delete", dialog.DeleteLabel),
             ("Test", dialog.TestConnectionLabel),
             ("Save", dialog.SaveLabel),
@@ -528,6 +543,35 @@ public static class SelfTest
 
         string geminiText = client.ExtractResponseText(gemini, """{"candidates":[{"content":{"parts":[{"text":"hola gemini"}]}}]}""");
         Assert("Extract gemini text", geminiText == "hola gemini");
+
+        // Razonamiento (deepseek-v4-flash/reasoner): content vacío → se lee reasoning_content.
+        string reasoning = client.ExtractResponseText(openai, """{"choices":[{"message":{"content":"","reasoning_content":"{\"archivos\":[]}"}}]}""");
+        Assert("Extract openai reasoning fallback", reasoning == """{"archivos":[]}""");
+
+        // Contenido vacío sin reasoning → error.
+        Assert("Extract contenido vacío lanza", Throws(() => client.ExtractResponseText(openai, """{"choices":[{"message":{"content":""}}]}"""), 200, "bad_response"));
+
+        // Presupuesto de tokens: fijo, y recorte por límite del modelo.
+        openai.MaxTokens = 8192;
+        Assert("Payload max_tokens fijo", client.BuildPayload(openai, "hola").Contains("\"max_tokens\":8192"));
+        openai.MaxTokens = MaxTokensConst.Max;
+        openai.MaxOutputLimit = 8000;
+        Assert("Payload max_tokens recortado al límite del modelo", client.BuildPayload(openai, "hola").Contains("\"max_tokens\":8000"));
+        openai.MaxOutputLimit = null;
+
+        // Cálculo automático de presupuesto.
+        Assert("Auto tokens piso Mini", MaxTokensConst.ForFiles(5) == MaxTokensConst.Mini, MaxTokensConst.ForFiles(5).ToString());
+        Assert("Auto tokens intermedio", MaxTokensConst.ForFiles(100) == 5000);
+        Assert("Auto tokens mil+ clampa al tope", MaxTokensConst.ForFiles(1091) == MaxTokensConst.Max);
+
+        // Límites de modelo: estáticos y en vivo.
+        Assert("Límite estático deepseek-v4", ModelLimits.LookupStatic("deepseek-v4-flash") == 384_000);
+        Assert("Límite estático deepseek-chat", ModelLimits.LookupStatic("deepseek-chat") == 8192);
+        Assert("Límite estático gpt-4o-mini", ModelLimits.LookupStatic("gpt-4o-mini") == 16384);
+        Assert("Límite estático desconocido", ModelLimits.LookupStatic("modelo-raro-123") == null);
+        var liveProvider = new AiProvider { ModelOutputLimits = { ["mi-modelo"] = 5000 } };
+        Assert("Límite en vivo gana", ModelLimits.Resolve(liveProvider, "mi-modelo") == 5000);
+        Assert("Límite desconocido no limita", ModelLimits.Resolve(liveProvider, "otro-modelo") == null);
 
         Assert("Extract error gemini", ThrowsAi(gemini, """{"error":{"code":429,"message":"Quota","status":"RESOURCE_EXHAUSTED"}}""", 429, "RESOURCE_EXHAUSTED"));
         Assert("Extract error openai", ThrowsAi(openai, """{"error":{"message":"Incorrect key","code":"invalid_api_key"}}""", 0, "invalid_api_key"));

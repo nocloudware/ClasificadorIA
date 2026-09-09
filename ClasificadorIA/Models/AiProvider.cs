@@ -23,6 +23,17 @@ public sealed class AiProvider
     public double Temperature { get; set; } = 0.7;
     public bool JsonMode { get; set; } = true;
 
+    /// <summary>Tope de tokens de salida por llamada. <see cref="MaxTokensConst.Max"/> = auto (calculado por cantidad de archivos).</summary>
+    public int MaxTokens { get; set; } = MaxTokensConst.Max;
+
+    /// <summary>Límites en vivo capturados al listar modelos (Gemini/Groq/OpenRouter). Transitorio, no se guarda.</summary>
+    [JsonIgnore]
+    public Dictionary<string, int> ModelOutputLimits { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Tope máximo real de salida del modelo actual (vivo o estático). null = desconocido.</summary>
+    [JsonIgnore]
+    public int? MaxOutputLimit { get; set; }
+
     /// <summary>Hosts locales (Ollama) no requieren API key.</summary>
     public bool RequiresApiKey
     {
@@ -38,7 +49,9 @@ public sealed class AiProvider
     {
         Id = Id, Name = Name, Scheme = Scheme, BaseUrl = BaseUrl, ApiKey = ApiKey,
         Models = new List<string>(Models), SelectedModel = SelectedModel,
-        ApiKeyUrl = ApiKeyUrl, Temperature = Temperature, JsonMode = JsonMode
+        ApiKeyUrl = ApiKeyUrl, Temperature = Temperature, JsonMode = JsonMode, MaxTokens = MaxTokens,
+        ModelOutputLimits = new Dictionary<string, int>(ModelOutputLimits),
+        MaxOutputLimit = MaxOutputLimit
     };
 
     public static IReadOnlyList<AiProvider> DefaultPresets() => new List<AiProvider>

@@ -43,6 +43,8 @@ public partial class ByokDialog : Window
     public string ModelHint => Translations.Get("ModelHint", _idioma);
     public string TemperatureLabel => Translations.Get("Temperature", _idioma);
     public string TemperatureHint => Translations.Get("TemperatureHint", _idioma);
+    public string MaxTokensLabel => Translations.Get("MaxTokens", _idioma);
+    public string MaxTokensHint => Translations.Get("MaxTokensHint", _idioma);
     public string DeleteLabel => Translations.Get("Delete", _idioma);
     public string TestConnectionLabel => Translations.Get("TestConnection", _idioma);
     public string SaveLabel => Translations.Get("Save", _idioma);
@@ -136,6 +138,7 @@ public partial class ByokDialog : Window
             ApiKeyUrlBox.Text = p.ApiKeyUrl;
         }
         TemperatureSlider.Value = p.Temperature;
+        ApplyModelTokens(p);
         RebindModelCombo(p);
         StatusText.Text = "";
         _loading = false;
@@ -148,6 +151,42 @@ public partial class ByokDialog : Window
             p.Models.Add(p.SelectedModel);
         ModelCombo.ItemsSource = p.Models;
         ModelCombo.SelectedItem = string.IsNullOrEmpty(p.SelectedModel) ? null : p.SelectedModel;
+        UpdateModelLimitText(p);
+    }
+
+    private void UpdateModelLimitText(AiProvider p)
+    {
+        int? limit = ModelLimits.Resolve(p, p.SelectedModel);
+        p.MaxOutputLimit = limit;
+        if (limit.HasValue)
+        {
+            ModelLimitText.Text = string.Format(Translations.Get("ModelLimitLabel", _idioma), limit.Value.ToString("N0"));
+            ModelLimitText.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            ModelLimitText.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void ApplyModelTokens(AiProvider p)
+    {
+        bool auto = p.MaxTokens >= MaxTokensConst.Max;
+        AutoTokensCheck.IsChecked = auto;
+        MaxTokensSlider.IsEnabled = !auto;
+        if (auto)
+            MaxTokensSlider.Value = MaxTokensConst.Max;
+        else if (p.MaxTokens is >= 4096 and <= 32768)
+            MaxTokensSlider.Value = p.MaxTokens;
+        UpdateMaxTokensText();
+    }
+
+    private void UpdateMaxTokensText()
+    {
+        if (MaxTokensValueText == null || AutoTokensCheck == null) return;
+        MaxTokensValueText.Text = AutoTokensCheck.IsChecked == true
+            ? Translations.Get("MaxTokensAuto", _idioma)
+            : ((int)MaxTokensSlider.Value).ToString("N0");
     }
 
     private void ApplyFieldEdits(AiProvider p)
@@ -158,6 +197,7 @@ public partial class ByokDialog : Window
         p.ApiKey = ApiKeyBox.Text;
         p.ApiKeyUrl = (IsPreset(p) ? p.ApiKeyUrl : ApiKeyUrlBox.Text.Trim());
         p.Temperature = Math.Round(TemperatureSlider.Value, 2);
+        p.MaxTokens = AutoTokensCheck.IsChecked == true ? MaxTokensConst.Max : (int)MaxTokensSlider.Value;
     }
 
     // ── Modelos / prueba ───────────────────────────────────────────────
@@ -216,7 +256,7 @@ public partial class ByokDialog : Window
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await _client.GenerateAsync(p, "ping: respond with a valid json object, e.g. {\"ok\":true}", cts.Token);
+            await _client.GenerateAsync(p, "ping: respond with a valid json object, e.g. {\"ok\":true}", null, cts.Token);
             return (true, string.Format(Translations.Get("ConnectionOk", _idioma), p.Name));
         }
         catch (AiException ex)
@@ -328,5 +368,18 @@ public partial class ByokDialog : Window
     {
         if (TemperatureValueText != null)
             TemperatureValueText.Text = Math.Round(e.NewValue, 2).ToString("0.00");
+    }
+
+    private void MaxTokensSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        UpdateMaxTokensText();
+    }
+
+    private void AutoTokensCheck_Click(object sender, RoutedEventArgs e)
+    {
+        bool auto = AutoTokensCheck.IsChecked == true;
+        MaxTokensSlider.IsEnabled = !auto;
+        if (auto) MaxTokensSlider.Value = MaxTokensConst.Max;
+        UpdateMaxTokensText();
     }
 }

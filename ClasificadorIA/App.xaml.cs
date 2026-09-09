@@ -365,9 +365,11 @@ public partial class App : System.Windows.Application
         _options.CancelClassifyLink.Visibility = Visibility.Visible;
         try
         {
+            var active = _byok.ActiveProvider!;
+            active.MaxOutputLimit = ModelLimits.Resolve(active, active.SelectedModel);
             var classifier = new BatchClassifier(
-                prompt => _aiClient.GenerateAsync(_byok.ActiveProvider!, prompt, cts.Token),
-                batchSize, depth);
+                (prompt, budget) => _aiClient.GenerateAsync(active, prompt, budget, cts.Token),
+                batchSize, depth, active.MaxOutputLimit);
             var results = await classifier.ClassifyAsync(
                 mode, criterion, Translations.Current, files, ShowStatus,
                 onBatchStarted: (i, n) => StartBatchTimer(i, n), cts.Token);

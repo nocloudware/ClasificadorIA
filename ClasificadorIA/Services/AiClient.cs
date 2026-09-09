@@ -33,13 +33,13 @@ public sealed class AiClient
 
     // ── Generar respuesta ──────────────────────────────────────────────
 
-    public async Task<string> GenerateAsync(AiProvider provider, string prompt, CancellationToken ct = default)
+    public async Task<string> GenerateAsync(AiProvider provider, string prompt, int? computedBudget = null, CancellationToken ct = default)
     {
         if (provider == null) throw new ArgumentNullException(nameof(provider));
         string model = ResolveModel(provider);
         WriteLog($"REQ {model}", prompt);
 
-        using var req = BuildChatRequest(provider, model, prompt);
+        using var req = BuildChatRequest(provider, model, prompt, computedBudget);
         try
         {
             using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseContentRead, ct).ConfigureAwait(false);
@@ -76,7 +76,7 @@ public sealed class AiClient
         return model;
     }
 
-    public HttpRequestMessage BuildChatRequest(AiProvider provider, string model, string prompt)
+    public HttpRequestMessage BuildChatRequest(AiProvider provider, string model, string prompt, int? computedBudget = null)
     {
         if (provider.RequiresApiKey && string.IsNullOrWhiteSpace(provider.ApiKey))
             throw new AiException(0, "missing_key", "API key requerida.");
@@ -87,7 +87,7 @@ public sealed class AiClient
 
         var req = new HttpRequestMessage(HttpMethod.Post, url);
         ApplyAuth(provider, req);
-        req.Content = new StringContent(BuildPayloadRaw(provider, model, prompt), Encoding.UTF8, "application/json");
+        req.Content = new StringContent(BuildPayloadRaw(provider, model, prompt, ResolveBudget(provider, computedBudget)), Encoding.UTF8, "application/json");
         return req;
     }
 
@@ -114,10 +114,19 @@ public sealed class AiClient
     public string BuildPayload(AiProvider provider, string prompt)
     {
         string model = ResolveModel(provider);
-        return BuildPayloadRaw(provider, model, prompt);
+        return BuildPayloadRaw(provider, model, prompt, ResolveBudget(provider, null));
     }
 
-    private string BuildPayloadRaw(AiProvider provider, string model, string prompt)
+    /// <summary>Presupuesto de tokens de salida: respeta el valor fijo del usuario, o en "Auto"
+    /// usa el calculado por lote (<paramref name="computed"/>, p. ej. ForFiles/ForConsolidation).
+    /// Nunca supera el tope real del modelo si se conoce.</summary>
+    private static int ResolveBudget(AiProvider provider, int? computed)
+    {
+        int budget = provider.MaxTokens != MaxTokensConst.Max ? provider.MaxTokens : (computed ?? MaxTokensConst.Max);
+        return provider.MaxOutputLimit.HasValue ? Math.Min(budget, provider.MaxOutputLimit.Value) : budget;
+    }
+
+    private string BuildPayloadRaw(AiProvider provider, string model, string prompt, int maxTokens)
     {
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         return provider.Scheme switch
@@ -125,7 +134,7 @@ public sealed class AiClient
             AiScheme.Anthropic => JsonSerializer.Serialize(new
             {
                 model,
-                max_tokens = 4096,
+                max_tokens = maxTokens,
                 temperature = provider.Temperature,
                 messages = new[] { new { role = "user", content = prompt } }
             }, options),
@@ -135,22 +144,23 @@ public sealed class AiClient
                 generationConfig = new
                 {
                     temperature = provider.Temperature,
+                    maxOutputTokens = maxTokens,
                     responseMimeType = "application/json"
                 }
             }, options),
             // OpenAI-compatible (openai/deepseek/groq/openrouter/ollama)
-            _ => BuildOpenAiPayload(provider, model, prompt)
+            _ => BuildOpenAiPayload(provider, model, prompt, maxTokens)
         };
     }
 
-    private static string BuildOpenAiPayload(AiProvider provider, string model, string prompt)
+    private static string BuildOpenAiPayload(AiProvider provider, string model, string prompt, int maxTokens)
     {
         var body = new Dictionary<string, object?>
         {
             ["model"] = model,
             ["messages"] = new[] { new { role = "user", content = prompt } },
             ["temperature"] = provider.Temperature,
-            ["max_tokens"] = 8192
+            ["max_tokens"] = maxTokens
         };
         if (provider.JsonMode)
             body["response_format"] = new { type = "json_object" };
@@ -181,7 +191,15 @@ public sealed class AiClient
         {
             var message = choices[0].GetProperty("message");
             if (message.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.String)
-                return content.GetString() ?? "";
+            {
+                string text = content.GetString() ?? "";
+                if (text.Length > 0) return text;
+            }
+            if (message.TryGetProperty("reasoning_content", out var reasoning) && reasoning.ValueKind == JsonValueKind.String)
+            {
+                string text = reasoning.GetString() ?? "";
+                if (text.Length > 0) return text;
+            }
         }
         throw new AiException(200, "bad_response", "No se pudo leer content de la respuesta.");
     }
@@ -316,7 +334,9 @@ public sealed class AiClient
             string body = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode)
                 throw BuildException(resp.StatusCode, body);
-            return ExtractModels(provider, body);
+            var names = ExtractModels(provider, body);
+            provider.MaxOutputLimit = ModelLimits.Resolve(provider, provider.SelectedModel);
+            return names;
         }
         catch (AiException) { throw; }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
@@ -347,6 +367,7 @@ public sealed class AiClient
     private static IReadOnlyList<string> ExtractModels(AiProvider provider, string json)
     {
         var names = new List<string>();
+        var limits = provider.ModelOutputLimits;
         using var doc = JsonDocument.Parse(json);
         if (provider.Scheme == AiScheme.Gemini)
         {
@@ -354,16 +375,33 @@ public sealed class AiClient
             {
                 foreach (var m in models.EnumerateArray())
                 {
-                    if (TryGetString(m, "name", out string? name) && !string.IsNullOrWhiteSpace(name))
-                        names.Add(name.StartsWith("models/") ? name["models/".Length..] : name);
+                    string? name = null;
+                    if (TryGetString(m, "name", out string? raw) && !string.IsNullOrWhiteSpace(raw))
+                        name = raw.StartsWith("models/") ? raw["models/".Length..] : raw;
+                    if (name != null)
+                    {
+                        names.Add(name);
+                        TryGetNumber(m, "outputTokenLimit", out int otl);
+                        if (otl > 0) limits[name] = otl;
+                    }
                 }
             }
         }
         else if (doc.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array)
         {
             foreach (var m in data.EnumerateArray())
-                if (TryGetString(m, "id", out string? id) && !string.IsNullOrWhiteSpace(id))
-                    names.Add(id);
+            {
+                if (!TryGetString(m, "id", out string? id) || string.IsNullOrWhiteSpace(id))
+                    continue;
+                names.Add(id);
+                if (IsOpenRouter(provider) && TryGetTopProviderMaxCompletion(m, out int mc) && mc > 0)
+                    limits[id] = mc;
+                else if (IsGroq(provider))
+                {
+                    TryGetNumber(m, "context_window", out int cw);
+                    if (cw > 0) limits[id] = cw;
+                }
+            }
         }
         else if (provider.Scheme == AiScheme.OpenAi && IsLocalBase(provider) &&
                  doc.RootElement.TryGetProperty("models", out var tags) && tags.ValueKind == JsonValueKind.Array)
@@ -374,6 +412,29 @@ public sealed class AiClient
         }
 
         return names.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    internal static bool IsGroq(AiProvider provider)
+    {
+        if (provider.Id?.Equals("groq", StringComparison.OrdinalIgnoreCase) == true) return true;
+        return provider.BaseUrl.Contains("groq.com", StringComparison.OrdinalIgnoreCase);
+    }
+
+    internal static bool IsOpenRouter(AiProvider provider)
+    {
+        if (provider.Id?.Equals("openrouter", StringComparison.OrdinalIgnoreCase) == true) return true;
+        return provider.BaseUrl.Contains("openrouter.ai", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool TryGetTopProviderMaxCompletion(JsonElement model, out int value)
+    {
+        value = 0;
+        if (model.TryGetProperty("top_provider", out var tp) && tp.ValueKind == JsonValueKind.Object)
+        {
+            TryGetNumber(tp, "max_completion_tokens", out value);
+            return value > 0;
+        }
+        return false;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────

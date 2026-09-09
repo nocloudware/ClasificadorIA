@@ -7,15 +7,20 @@ namespace ClasificadorIA.Services;
 /// <summary>Clasificación por lotes con IA (BYOK): asignación por chunk + consolidación final.</summary>
 public sealed class BatchClassifier
 {
-    private readonly Func<string, Task<string>> _generate;
+    private readonly Func<string, int, Task<string>> _generate;
     private readonly int _batchSize;
     private readonly int _depth;
+    private readonly int? _maxOutputLimit;
 
-    public BatchClassifier(Func<string, Task<string>> generate, int batchSize = 20, int depth = 5)
+    /// <param name="generate">Prompt + presupuesto de tokens de salida calculado para esa llamada.</param>
+    /// <param name="maxOutputLimit">Tope real de tokens de salida del modelo (null = desconocido).
+    /// Si se conoce, los lotes se achican para que cada uno quepa en ese tope, sin importar el tamaño elegido.</param>
+    public BatchClassifier(Func<string, int, Task<string>> generate, int batchSize = 20, int depth = 5, int? maxOutputLimit = null)
     {
         _generate = generate;
         _batchSize = Math.Max(1, batchSize);
         _depth = Math.Max(1, depth);
+        _maxOutputLimit = maxOutputLimit;
     }
 
     public async Task<List<ClassificationResult>> ClassifyAsync(
@@ -27,13 +32,19 @@ public sealed class BatchClassifier
         var assignments = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var failed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        // Tamaño real del lote: el elegido por el usuario, achicado si el modelo no da para más.
+        // ForFiles ≈ 30 tokens/archivo + 2000 de base → (limite − 2000) / 30 archivos entran.
+        int cap = _maxOutputLimit ?? int.MaxValue;
+        int fitChunk = cap > 2000 ? Math.Max(1, (cap - 2000) / 30) : 1;
+        int chunkSize = Math.Min(_batchSize, fitChunk);
+
         int total = fileNames.Count;
-        int batchCount = (int)Math.Max(1, ((long)total + _batchSize - 1) / _batchSize);
+        int batchCount = (int)Math.Max(1, ((long)total + chunkSize - 1) / chunkSize);
         int batchIndex = 0;
 
         // Fase 1: asignación por lote. Las categorías de los lotes anteriores se pasan al siguiente como guía.
         var knownCategories = new List<string>();
-        foreach (var chunk in Chunk(fileNames, _batchSize))
+        foreach (var chunk in Chunk(fileNames, chunkSize))
         {
             ct.ThrowIfCancellationRequested();
             batchIndex++;
@@ -43,7 +54,7 @@ public sealed class BatchClassifier
             var batchFiles = chunk.ToList();
             string prompt = PromptGenerator.AssignmentBatch(mode, criterion, idioma, batchFiles, knownCategories);
             // Si falla, reintente (plan gratuito pide espera); si sigue fallando, aborte con el error real.
-            string text = await GenerateWithRetryAsync(prompt, onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
+            string text = await GenerateWithRetryAsync(prompt, MaxTokensConst.ForFiles(batchFiles.Count), onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
             var parsed = ResponseParser.ParseBatchAssignments(text, batchFiles, idioma);
             AiClient.WriteLog($"PARSE batch {batchIndex}/{batchCount}",
                 $"files={batchFiles.Count} parsed={parsed.Count} missing={batchFiles.Count - parsed.Count}");
@@ -67,7 +78,7 @@ public sealed class BatchClassifier
             string prompt = PromptGenerator.Consolidate(categories, _depth, idioma);
             try
             {
-                string text = await GenerateWithRetryAsync(prompt, onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
+                string text = await GenerateWithRetryAsync(prompt, MaxTokensConst.ForConsolidation(categories.Count), onStatus, batchIndex, batchCount, idioma, ct).ConfigureAwait(false);
                 var map = ResponseParser.ParseConsolidationMap(text, idioma);
                 AiClient.WriteLog("PARSE consolidación",
                     $"categories={categories.Count} map={(map == null ? "<null>" : map.Count.ToString())}");
@@ -126,14 +137,14 @@ public sealed class BatchClassifier
     }
 
     private async Task<string> GenerateWithRetryAsync(
-        string prompt, Action<string>? onStatus, int batchIndex, int batchCount, Idioma idioma, CancellationToken ct)
+        string prompt, int budget, Action<string>? onStatus, int batchIndex, int batchCount, Idioma idioma, CancellationToken ct)
     {
         const int maxAttempts = 3;
         for (int attempt = 1; ; attempt++)
         {
             try
             {
-                return await _generate(prompt).ConfigureAwait(false);
+                return await _generate(prompt, budget).ConfigureAwait(false);
             }
             catch (AiException ex) when (IsRateLimited(ex) && attempt < maxAttempts)
             {
