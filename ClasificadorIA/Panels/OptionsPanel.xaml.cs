@@ -66,6 +66,7 @@ public partial class OptionsPanel : UserControl
         CopyRadio.Content = Translations.Get("CopyFiles");
         MoveRadio.Content = Translations.Get("MoveFiles");
         ClassifyBtn.Content = Translations.Get("Classify");
+        CancelClassifyLink.Content = Translations.Get("Cancel");
 
         int modeIndex = ModeCombo.SelectedIndex;
         ModeCombo.ItemsSource = ClassificationModes.All

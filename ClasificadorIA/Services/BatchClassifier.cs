@@ -20,7 +20,8 @@ public sealed class BatchClassifier
 
     public async Task<List<ClassificationResult>> ClassifyAsync(
         ClassificationMode mode, string criterion, Idioma idioma,
-        IReadOnlyList<string> files, Action<string>? onStatus = null, CancellationToken ct = default)
+        IReadOnlyList<string> files, Action<string>? onStatus = null,
+        Action<int, int>? onBatchStarted = null, CancellationToken ct = default)
     {
         var fileNames = files.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var assignments = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -36,6 +37,7 @@ public sealed class BatchClassifier
         {
             ct.ThrowIfCancellationRequested();
             batchIndex++;
+            onBatchStarted?.Invoke(batchIndex, batchCount);
             onStatus?.Invoke(string.Format(Translations.Get("BatchStatus", idioma), batchIndex, batchCount));
 
             var batchFiles = chunk.ToList();

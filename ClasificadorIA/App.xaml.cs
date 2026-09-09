@@ -4,6 +4,7 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using ClasificadorIA.Models;
 using ClasificadorIA.Panels;
 using ClasificadorIA.Services;
@@ -26,6 +27,11 @@ public partial class App : System.Windows.Application
 
     private List<ClassificationResult> _results = new();
     private CancellationTokenSource? _organizeCts;
+    private CancellationTokenSource? _classifyCts;
+    private readonly DispatcherTimer _batchTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+    private DateTime _batchStart;
+    private int _batchIndex;
+    private int _batchCount;
     private bool _organizing;
     private int _organizeTotal;
 
@@ -199,11 +205,15 @@ public partial class App : System.Windows.Application
         _window.Closing += (_, _) =>
         {
             _organizeCts?.Cancel();
+            _classifyCts?.Cancel();
             SavePreferences();
         };
 
+        _batchTimer.Tick += (_, _) => ShowBatchTimer();
+
         _options!.ClassifyBtn.Click += (_, _) => _ = ClassifyAsync();
         _options.ByokButton.Click += (_, _) => OpenByokDialog();
+        _options.CancelClassifyLink.Click += (_, _) => _classifyCts?.Cancel();
 
         _options.ModeCombo.SelectionChanged += (_, _) => ResetResults();
         _options.CriterionCombo.SelectionChanged += (_, _) => ResetResults();
@@ -349,13 +359,18 @@ public partial class App : System.Windows.Application
         int batchSize = _options!.BatchSize;
 
         _options!.ClassifyBtn.IsEnabled = false;
+        var cts = new CancellationTokenSource();
+        _classifyCts = cts;
+        _options.TimerText.Visibility = Visibility.Visible;
+        _options.CancelClassifyLink.Visibility = Visibility.Visible;
         try
         {
             var classifier = new BatchClassifier(
-                prompt => _aiClient.GenerateAsync(_byok.ActiveProvider!, prompt),
+                prompt => _aiClient.GenerateAsync(_byok.ActiveProvider!, prompt, cts.Token),
                 batchSize, depth);
             var results = await classifier.ClassifyAsync(
-                mode, criterion, Translations.Current, files, ShowStatus);
+                mode, criterion, Translations.Current, files, ShowStatus,
+                onBatchStarted: (i, n) => StartBatchTimer(i, n), cts.Token);
             if (results.Count == 0)
             {
                 MessageBox.Show(Translations.Get("NoValidCategories"), Translations.Get("Error"),
@@ -369,10 +384,44 @@ public partial class App : System.Windows.Application
             MessageBox.Show(Translations.AiErrorMessage(ex, Translations.Current), Translations.Get("Error"),
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
+        catch (OperationCanceledException)
+        {
+            MessageBox.Show(Translations.Get("ClassifyCancelled"), Translations.Get("Error"),
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
         finally
         {
-            _options!.ClassifyBtn.IsEnabled = true;
+            _batchTimer.Stop();
+            _options!.TimerText.Visibility = Visibility.Collapsed;
+            _options.CancelClassifyLink.Visibility = Visibility.Collapsed;
+            _options.ClassifyBtn.IsEnabled = true;
+            cts.Dispose();
+            _classifyCts = null;
         }
+    }
+
+    // Cronómetro por lote: arranca en 0 al comenzar cada lote y avanza 1s/s.
+    private void StartBatchTimer(int index, int count)
+    {
+        _batchIndex = index;
+        _batchCount = count;
+        _batchStart = DateTime.Now;
+        _batchTimer.Stop();
+        _batchTimer.Start();
+        ShowBatchTimer();
+    }
+
+    private void ShowBatchTimer()
+    {
+        if (_options == null) return;
+        var elapsed = DateTime.Now - _batchStart;
+        string text = string.Format(Translations.Get("BatchTimer"),
+            _batchIndex, _batchCount, elapsed.ToString(@"mm\:ss"));
+        void Set() => _options.TimerText.Text = text;
+        if (_options.Dispatcher.CheckAccess())
+            Set();
+        else
+            _options.Dispatcher.BeginInvoke(Set);
     }
 
     private void SetResults(List<ClassificationResult> results)

@@ -176,7 +176,8 @@ public partial class ByokDialog : Window
         StatusText.Text = Translations.Get("LoadingModels", _idioma);
         try
         {
-            var models = await _client.ListModelsAsync(p);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            var models = await _client.ListModelsAsync(p, cts.Token);
             p.Models = models.ToList();
             RebindModelCombo(p);
             StatusText.Text = string.Format(Translations.Get("ModelsLoaded", _idioma), models.Count);
@@ -184,6 +185,10 @@ public partial class ByokDialog : Window
         catch (AiException ex)
         {
             StatusText.Text = Translations.AiErrorMessage(ex, _idioma);
+        }
+        catch (OperationCanceledException)
+        {
+            StatusText.Text = Translations.AiErrorMessage(new AiException(0, "timeout", "Timeout."), _idioma);
         }
         finally
         {
@@ -210,13 +215,19 @@ public partial class ByokDialog : Window
         StatusText.Text = Translations.Get("TestingConnection", _idioma);
         try
         {
-            await _client.GenerateAsync(p, "ping: respond with a valid json object, e.g. {\"ok\":true}");
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await _client.GenerateAsync(p, "ping: respond with a valid json object, e.g. {\"ok\":true}", cts.Token);
             return (true, string.Format(Translations.Get("ConnectionOk", _idioma), p.Name));
         }
         catch (AiException ex)
         {
             return (false, string.Format(Translations.Get("ConnectionFailed", _idioma),
                 Translations.AiErrorMessage(ex, _idioma)));
+        }
+        catch (OperationCanceledException)
+        {
+            return (false, string.Format(Translations.Get("ConnectionFailed", _idioma),
+                Translations.AiErrorMessage(new AiException(0, "timeout", "Timeout."), _idioma)));
         }
     }
 

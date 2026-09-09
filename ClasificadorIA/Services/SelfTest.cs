@@ -225,6 +225,37 @@ public static class SelfTest
         var retryResult = retryClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3" }).GetAwaiter().GetResult();
         Assert("Batch: cuota reintenta hasta resolver", retryResult.Sum(r => r.Files.Count) == 2, string.Join(",", retryResult.Select(r => $"{r.Category}({r.Files.Count})")));
 
+        // onBatchStarted anuncia cada lote (1..N) con el conteo correcto.
+        var starts = new List<(int Index, int Count)>();
+        var startClassifier = new BatchClassifier(prompt =>
+            prompt.Contains("\"archivos\"")
+                ? Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"a"},{"archivo":"can2.mp3","categoria":"b"},{"archivo":"can3.mp3","categoria":"c"}]}""")
+                : Task.FromResult("""{"finales":{"A":["a"],"B":["b"]}}"""),
+            batchSize: 2, depth: 10);
+        startClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3", "can3.mp3" },
+            onBatchStarted: (i, n) => starts.Add((i, n))).GetAwaiter().GetResult();
+        Assert("Batch: onBatchStarted por lote", starts.Count == 2 && starts[0] == (1, 2) && starts[1] == (2, 2), string.Join(",", starts));
+
+        // Cancelación: token cancelado aborta sin llamar al generador.
+        int cancelledCalls = 0;
+        var cancelClassifier = new BatchClassifier(prompt =>
+        {
+            cancelledCalls++;
+            return Task.FromResult("{}");
+        }, batchSize: 2, depth: 10);
+        bool aborted = false;
+        try
+        {
+            using var cts = new CancellationTokenSource();
+            cts.Cancel();
+            cancelClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, files, ct: cts.Token).GetAwaiter().GetResult();
+        }
+        catch (OperationCanceledException)
+        {
+            aborted = true;
+        }
+        Assert("Batch: cancelación aborta sin generar", aborted && cancelledCalls == 0, $"aborted={aborted}, calls={cancelledCalls}");
+
         // Error que no es de cuota → se propaga (no se miente con "Otros").
         int noRetryCalls = 0;
         var hardFailClassifier = new BatchClassifier(_ =>

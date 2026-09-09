@@ -14,8 +14,9 @@ public sealed class AiClient
 
     public AiClient(HttpClient? http = null)
     {
-        // 10 minutos: un lote enorme (p. ej. "Todos" con miles de archivos) pide una respuesta larga.
-        _http = http ?? new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+        // Sin timeout fijo: el usuario decide cuándo abortar desde la cabina de clasificación
+        // (cronómetro por lote + Cancelar). El token de cancelación se propaga por GenerateAsync.
+        _http = http ?? new HttpClient { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
     }
 
     // ── Generar respuesta ──────────────────────────────────────────────
