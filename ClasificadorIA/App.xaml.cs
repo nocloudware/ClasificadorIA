@@ -304,6 +304,9 @@ public partial class App : System.Windows.Application
     private string[] GetFileNames() =>
         _window!.Files.Where(f => !FileFilters.IsSystemFile(f.FileName)).Select(f => f.FileName).ToArray();
 
+    private string[] GetFilePaths() =>
+        _window!.Files.Where(f => !FileFilters.IsSystemFile(f.FileName)).Select(f => f.FilePath).ToArray();
+
     private async Task ClassifyAsync()
     {
         var files = GetFileNames();
@@ -317,13 +320,13 @@ public partial class App : System.Windows.Application
         if (_options!.MethodIa.IsChecked == true)
             await ClassifyIa(files);
         else
-            ClassifyLocal(files);
+            ClassifyLocal(GetFilePaths());
     }
 
-    private void ClassifyLocal(string[] files)
+    private void ClassifyLocal(string[] paths)
     {
-        var (_, _, depth) = GetOptions();
-        var results = LocalClassifier.Classify(files, depth, Translations.Current);
+        var (_, criterion, depth) = GetOptions();
+        var results = LocalClassifier.Classify(paths, depth, Translations.Current, criterion);
         if (results.Count == 0)
         {
             MessageBox.Show(Translations.Get("NoValidCategories"), Translations.Get("Error"),
