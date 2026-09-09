@@ -210,7 +210,7 @@ public partial class ByokDialog : Window
         StatusText.Text = Translations.Get("TestingConnection", _idioma);
         try
         {
-            await _client.GenerateAsync(p, "ping");
+            await _client.GenerateAsync(p, "ping: respond with a valid json object, e.g. {\"ok\":true}");
             return (true, string.Format(Translations.Get("ConnectionOk", _idioma), p.Name));
         }
         catch (AiException ex)
