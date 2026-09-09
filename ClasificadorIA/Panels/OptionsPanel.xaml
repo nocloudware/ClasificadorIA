@@ -133,6 +133,13 @@
                             Padding="0"
                             VerticalAlignment="Center"/>
                 </StackPanel>
+                <TextBlock x:Name="LocalDisclaimerText"
+                   FontSize="10"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   TextWrapping="Wrap"
+                   TextAlignment="Center"
+                   Margin="0,4,0,0"
+                   Visibility="Collapsed"/>
                 <TextBlock x:Name="PanelHintText"
                            FontSize="10"
                            Foreground="{DynamicResource TextSecondaryBrush}"

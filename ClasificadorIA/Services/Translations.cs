@@ -75,6 +75,7 @@ public static class Translations
         ["ClassifyCancelled"] = ("Clasificación cancelada.", "Classification cancelled."),
         ["AppUpToDate"] = ("Estás usando la última versión.", "You are using the latest version."),
         ["AutoByokHint"] = ("Configura tu API key bajo BYOK para clasificación automática.", "Set up your API key under BYOK for automatic classification."),
+        ["LocalDisclaimer"] = ("La clasificación local es menos exacta que la IA: usa solo datos del archivo (nombre, metadatos, tipo). Si algo queda en \u201cOtros\u201d es por falta de información local, no un error del programa.", "Local classification is less accurate than AI: it only uses file data (name, metadata, type). If something ends up in \u201cOthers\u201d it is missing local info, not a program bug."),
         ["CloseBtn"] = ("Cerrar", "Close"),
         // About dialog
         ["AboutTitle"] = ("Acerca de Clasificador IA", "About Clasificador IA"),

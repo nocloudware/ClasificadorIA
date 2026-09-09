@@ -44,6 +44,7 @@ public partial class OptionsPanel : UserControl
         BatchSizeCombo.IsEnabled = ia;
         ByokButton.Visibility = ia ? Visibility.Visible : Visibility.Collapsed;
         PanelHintText.Text = ia ? Translations.Get("AutoByokHint") : "";
+        LocalDisclaimerText.Visibility = ia ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void ApplyLanguage()
@@ -67,6 +68,7 @@ public partial class OptionsPanel : UserControl
         MoveRadio.Content = Translations.Get("MoveFiles");
         ClassifyBtn.Content = Translations.Get("Classify");
         CancelClassifyLink.Content = Translations.Get("Cancel");
+        LocalDisclaimerText.Text = Translations.Get("LocalDisclaimer");
 
         int modeIndex = ModeCombo.SelectedIndex;
         ModeCombo.ItemsSource = ClassificationModes.All

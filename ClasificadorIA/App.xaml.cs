@@ -446,7 +446,7 @@ public partial class App : System.Windows.Application
 
         var header = new TextBlock
         {
-            Text = string.Format(Translations.Get("CategoriasDetectadas"), _results.Sum(r => r.Files.Count)),
+            Text = string.Format(Translations.Get("CategoriasDetectadas"), _results.Count),
             FontWeight = FontWeights.SemiBold,
             Foreground = System.Windows.Media.Brushes.Transparent,
             Margin = new Thickness(0, 0, 0, 8)
@@ -465,7 +465,7 @@ public partial class App : System.Windows.Application
             var catNode = new TreeViewItem
             {
                 Header = $"{r.Category}  ({r.Files.Count})",
-                IsExpanded = true,
+                IsExpanded = false,
                 FontWeight = FontWeights.SemiBold
             };
             foreach (var file in r.Files)
