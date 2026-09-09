@@ -1,0 +1,11 @@
+THIRD PARTY NOTICES
+
+Este proyecto usa los siguientes componentes de terceros:
+
+1. MetadataExtractor (Apache-2.0)
+   - Electronic Arts / Drew Noakes - https://github.com/drewnoakes/metadata-extractor-dotnet
+   - Licencia: Libs/MetadataExtractor/LICENSE.txt
+
+2. TagLibSharp (LGPL-2.1)
+   - Mono / https://github.com/mono/taglib-sharp
+   - Licencia: Libs/TagLibSharp/LICENSE.txt
