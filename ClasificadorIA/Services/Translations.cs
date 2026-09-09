@@ -59,6 +59,8 @@ public static class Translations
         ["CatVideo"] = ("Video", "Video"),
         ["CatImage"] = ("Imagen", "Image"),
         ["CatDoc"] = ("Documento", "Document"),
+        ["Temporada"] = ("Temporada {0}", "Season {0}"),
+        ["Decade"] = ("Década {0}", "{0}s"),
         // Classify
         ["Classify"] = ("Clasificar", "Classify"),
         ["Byok"] = ("BYOK", "BYOK"),

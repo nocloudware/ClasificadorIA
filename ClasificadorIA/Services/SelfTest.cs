@@ -18,6 +18,7 @@ public static class SelfTest
         RunPromptGenerator();
         RunResponseParser();
         RunLocalClassifier();
+        RunMetadataClassifier();
         RunBatchClassifier();
         RunFileOrganizer();
         RunFileFilters();
@@ -149,6 +150,41 @@ public static class SelfTest
 
         Assert("Local: sin archivos devuelve vacío", LocalClassifier.Classify(Array.Empty<string>(), 5, Idioma.Español).Count == 0);
         Assert("CapToDepth bajo límite no toca", LocalClassifier.CapToDepth(new[] { new ClassificationResult("A", new[] { "x" }) }, 5, "Otros").Count == 1);
+    }
+
+    // ── Micro-clasificador por metadatos ──────────────────────────────
+
+    private static void RunMetadataClassifier()
+    {
+        string root = Path.Combine(Path.GetTempPath(), "metaclass-selftest-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try
+        {
+            // Video con patrón de serie → "Temporada 1".
+            string serie = Path.Combine(root, "S01E05.mp4");
+            File.WriteAllText(serie, "x");
+            Assert("Meta: S01E05 → Temporada 1", MetadataClassifier.TryClassify(serie, null, Idioma.Español) == "Temporada 1");
+
+            // Video sin patrón → año de creación del archivo.
+            string video = Path.Combine(root, "vacaciones.mp4");
+            File.WriteAllText(video, "x");
+            int year = File.GetLastWriteTime(video).Year;
+            Assert("Meta: video sin patrón → año", MetadataClassifier.TryClassify(video, null, Idioma.Español) == year.ToString());
+
+            // Documento → año.
+            string doc = Path.Combine(root, "nota.txt");
+            File.WriteAllText(doc, "x");
+            Assert("Meta: doc → año", MetadataClassifier.TryClassify(doc, null, Idioma.Español) == year.ToString());
+
+            // Audio sin tags válidos (no es audio real) → null → cae al fallback.
+            string fake = Path.Combine(root, "cancion.mp3");
+            File.WriteAllText(fake, "no-es-audio");
+            Assert("Meta: audio corrupto → null", MetadataClassifier.TryClassify(fake, "Género", Idioma.Español) == null);
+        }
+        finally
+        {
+            try { Directory.Delete(root, true); } catch { }
+        }
     }
 
     // ── Clasificador por lotes (fake client) ──────────────────────────

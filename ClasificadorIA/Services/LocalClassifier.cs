@@ -20,6 +20,11 @@ public static class LocalClassifier
     private static readonly HashSet<string> ExtImage = new(StringComparer.OrdinalIgnoreCase) { "jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "ico", "heic", "tiff" };
     private static readonly HashSet<string> ExtDoc = new(StringComparer.OrdinalIgnoreCase) { "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "md", "csv", "rtf", "odt", "ods" };
 
+    internal static bool IsImageExt(string ext) => ExtImage.Contains(ext.TrimStart('.'));
+    internal static bool IsAudioExt(string ext) => ExtAudio.Contains(ext.TrimStart('.'));
+    internal static bool IsVideoExt(string ext) => ExtVideo.Contains(ext.TrimStart('.'));
+    internal static bool IsDocExt(string ext) => ExtDoc.Contains(ext.TrimStart('.'));
+
     public static List<ClassificationResult> Classify(IReadOnlyList<string> filenames, int depth, Idioma idioma)
     {
         if (filenames.Count == 0) return new List<ClassificationResult>();
