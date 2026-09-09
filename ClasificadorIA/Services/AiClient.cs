@@ -14,7 +14,8 @@ public sealed class AiClient
 
     public AiClient(HttpClient? http = null)
     {
-        _http = http ?? new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+        // 10 minutos: un lote enorme (p. ej. "Todos" con miles de archivos) pide una respuesta larga.
+        _http = http ?? new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
     }
 
     // ── Generar respuesta ──────────────────────────────────────────────
@@ -130,7 +131,8 @@ public sealed class AiClient
         {
             ["model"] = model,
             ["messages"] = new[] { new { role = "user", content = prompt } },
-            ["temperature"] = provider.Temperature
+            ["temperature"] = provider.Temperature,
+            ["max_tokens"] = 8192
         };
         if (provider.JsonMode)
             body["response_format"] = new { type = "json_object" };
