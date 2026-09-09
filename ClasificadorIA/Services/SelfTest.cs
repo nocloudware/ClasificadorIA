@@ -150,6 +150,16 @@ public static class SelfTest
 
         Assert("Local: sin archivos devuelve vacío", LocalClassifier.Classify(Array.Empty<string>(), 5, Idioma.Español).Count == 0);
         Assert("CapToDepth bajo límite no toca", LocalClassifier.CapToDepth(new[] { new ClassificationResult("A", new[] { "x" }) }, 5, "Otros").Count == 1);
+
+        // Despacho por tipo: imagen sin EXIF y sin tokens → extensión.
+        var fakeImg = new[] { "SCAN123.bmp", "IMG_456.png" };
+        var imgRes = LocalClassifier.Classify(fakeImg, 5, Idioma.Español, null);
+        Assert("Local: imagen sin metadatos → extensión Imagen", imgRes.Any(r => r.Category == "Imagen"), string.Join(",", imgRes.Select(b => $"{b.Category}({b.Files.Count})")));
+
+        // Categorías de metadatos conviven con token-genérico en una corrida.
+        var mixtoExt = new[] { "S02E03.mkv", "factura.pdf", "The Beatles - Hey Jude.mp3", "The Beatles - Let It Be.mp3" };
+        var mixtoRes = LocalClassifier.Classify(mixtoExt, 5, Idioma.Español, null);
+        Assert("Local: metadatos + tokens en una corrida", mixtoRes.Any(r => r.Category == "Beatles" && r.Files.Count == 2) && mixtoRes.Any(r => r.Category == "Temporada 2" && r.Files.Count == 1), string.Join(",", mixtoRes.Select(b => $"{b.Category}({b.Files.Count})")));
     }
 
     // ── Micro-clasificador por metadatos ──────────────────────────────

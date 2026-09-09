@@ -25,9 +25,56 @@ public static class LocalClassifier
     internal static bool IsVideoExt(string ext) => ExtVideo.Contains(ext.TrimStart('.'));
     internal static bool IsDocExt(string ext) => ExtDoc.Contains(ext.TrimStart('.'));
 
-    public static List<ClassificationResult> Classify(IReadOnlyList<string> filenames, int depth, Idioma idioma)
+    public static List<ClassificationResult> Classify(
+        IReadOnlyList<string> paths, int depth, Idioma idioma, string? criterionKey = null)
     {
-        if (filenames.Count == 0) return new List<ClassificationResult>();
+        if (paths.Count == 0) return new List<ClassificationResult>();
+
+        // Paso 1: metadatos especializados (EXIF, tags, patrones, fechas).
+        var byMetadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in paths)
+        {
+            string? cat = MetadataClassifier.TryClassify(p, criterionKey, idioma);
+            if (cat != null) byMetadata.TryAdd(p, cat);
+        }
+
+        // Paso 2: token-genérico sobre el resto.
+        var remaining = paths.Where(p => !byMetadata.ContainsKey(p)).ToList();
+        var (topicByFile, extByFile) = ClassifyByTokens(remaining, idioma);
+
+        var buckets = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (f, cat) in byMetadata)
+            AddTo(buckets, cat, f);
+        foreach (var f in remaining)
+        {
+            string cat = topicByFile.TryGetValue(f, out string? topic)
+                ? topic
+                : extByFile.TryGetValue(f, out string? ext)
+                    ? ext
+                    : Translations.Get("Otros", idioma);
+            AddTo(buckets, cat, f);
+        }
+
+        var results = buckets
+            .Where(kv => kv.Value.Count > 0)
+            .Select(kv => new ClassificationResult(kv.Key, kv.Value.AsReadOnly()))
+            .ToList();
+        return CapToDepth(results, depth, Translations.Get("Otros", idioma));
+    }
+
+    private static void AddTo(Dictionary<string, List<string>> buckets, string cat, string file)
+    {
+        if (!buckets.TryGetValue(cat, out var list))
+            buckets[cat] = list = new List<string>();
+        list.Add(file);
+    }
+
+    private static (Dictionary<string, string> Topic, Dictionary<string, string> Ext) ClassifyByTokens(
+        IReadOnlyList<string> filenames, Idioma idioma)
+    {
+        var topicByFile = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var extByFile = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (filenames.Count == 0) return (topicByFile, extByFile);
 
         var tokensByFile = new Dictionary<string, List<string>>(filenames.Count, StringComparer.OrdinalIgnoreCase);
         var tokenFreq = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -43,7 +90,6 @@ public static class LocalClassifier
         // Un token en casi todos los archivos es el tema de la carpeta (p. ej. un sufijo de serie),
         // no un subtema: se descarta para no colapsar todo en una sola categoría.
         double coverLimit = filenames.Count * 0.75;
-        var topicByFile = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (file, tokens) in tokensByFile)
         {
             string? best = null;
@@ -58,26 +104,13 @@ public static class LocalClassifier
                 topicByFile[file] = Capitalize(best);
         }
 
-        // Buckets por tema; el resto por extensión.
-        var buckets = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase)
-        {
-            [Translations.Get("Otros", idioma)] = new List<string>()
-        };
         foreach (var file in filenames)
         {
-            string cat = topicByFile.TryGetValue(file, out string? topic)
-                ? topic
-                : ExtensionCategory(Path.GetExtension(file), idioma);
-            if (!buckets.TryGetValue(cat, out var list))
-                buckets[cat] = list = new List<string>();
-            list.Add(file);
+            if (!topicByFile.ContainsKey(file))
+                extByFile[file] = ExtensionCategory(Path.GetExtension(file), idioma);
         }
 
-        var results = buckets
-            .Where(kv => kv.Value.Count > 0)
-            .Select(kv => new ClassificationResult(kv.Key, kv.Value.AsReadOnly()))
-            .ToList();
-        return CapToDepth(results, depth, Translations.Get("Otros", idioma));
+        return (topicByFile, extByFile);
     }
 
     private static List<string> Tokenize(string filename)
