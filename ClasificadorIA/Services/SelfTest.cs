@@ -151,6 +151,18 @@ public static class SelfTest
         Assert("Local: sin archivos devuelve vacío", LocalClassifier.Classify(Array.Empty<string>(), 5, Idioma.Español).Count == 0);
         Assert("CapToDepth bajo límite no toca", LocalClassifier.CapToDepth(new[] { new ClassificationResult("A", new[] { "x" }) }, 5, "Otros").Count == 1);
 
+        // CapToDepth: el sobrante se suma a un "Otros" existente, no crea un duplicado.
+        var conOtros = new List<ClassificationResult>
+        {
+            new("Pop", new[] { "p1", "p2", "p3" }),
+            new("Otros", new[] { "o1", "o2" }),
+            new("Rock", new[] { "r1" }),
+            new("Jazz", new[] { "j1", "j2" })
+        };
+        var capOtros = LocalClassifier.CapToDepth(conOtros, 3, "Otros");
+        Assert("Cap: no duplica Otros", capOtros.Count(r => r.Category == "Otros") == 1, string.Join(",", capOtros.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Cap: sobrante se suma al Otros existente", capOtros.First(r => r.Category == "Otros").Files.Count == 5, string.Join(",", capOtros.Select(b => $"{b.Category}({b.Files.Count})")));
+
         // Música + Género: sin etiqueta de género → Otros (ni extensión, ni nombres ni artistas).
         var sinTags = new[] { @"C:\x\Soda Stereo - De Música Ligera.mp3", @"C:\x\Aerosmith - Walk This Way.mp3" };
         var genero = LocalClassifier.Classify(sinTags, 5, Idioma.Español, "Género");

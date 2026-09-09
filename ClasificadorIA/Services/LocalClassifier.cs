@@ -120,6 +120,7 @@ public static class LocalClassifier
         token.Length == 0 ? token : char.ToUpperInvariant(token[0]) + token[1..];
 
     // Máximo `depth` categorías: conserva las depth-1 mayores y fusiona el resto en `others`.
+    // Si ya existe una categoría `others`, el sobrante se suma a ella (no se duplica).
     public static List<ClassificationResult> CapToDepth(IReadOnlyList<ClassificationResult> results, int depth, string others)
     {
         if (results.Count <= depth) return results.ToList();
@@ -129,7 +130,18 @@ public static class LocalClassifier
             .SelectMany(r => r.Files)
             .ToList();
         if (leftover.Count > 0)
-            ordered.Add(new ClassificationResult(others, leftover.AsReadOnly()));
+        {
+            var existing = ordered.FirstOrDefault(r => string.Equals(r.Category, others, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
+            {
+                int idx = ordered.IndexOf(existing);
+                ordered[idx] = new ClassificationResult(existing.Category, existing.Files.Concat(leftover).ToList().AsReadOnly());
+            }
+            else
+            {
+                ordered.Add(new ClassificationResult(others, leftover.AsReadOnly()));
+            }
+        }
         return ordered;
     }
 }
