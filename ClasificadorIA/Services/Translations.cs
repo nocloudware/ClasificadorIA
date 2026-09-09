@@ -56,11 +56,7 @@ public static class Translations
         ["BatchTimer"] = ("Lote {0}/{1} · {2}", "Batch {0}/{1} · {2}"),
         ["BatchRetryStatus"] = ("Lote {0}/{1}: cuota agotada, reintento {2} en {3}s…", "Batch {0}/{1}: rate-limited, retry {2} in {3}s…"),
         ["Otros"] = ("Otros", "Others"),
-        ["CatAudio"] = ("Audio", "Audio"),
-        ["CatVideo"] = ("Video", "Video"),
-        ["CatImage"] = ("Imagen", "Image"),
-        ["CatDoc"] = ("Documento", "Document"),
-        ["Temporada"] = ("Temporada {0}", "Season {0}"),
+        ["CatSoundtrack"] = ("Banda sonora", "Soundtrack"),
         ["Decade"] = ("Década {0}", "{0}s"),
         // Classify
         ["Classify"] = ("Clasificar", "Classify"),

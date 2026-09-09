@@ -118,28 +118,28 @@ public static class SelfTest
 
     private static void RunLocalClassifier()
     {
-        // Tema por token compartido ("beatles" en 2 archivos).
+        // Genérico + Tema: agrupa por token compartido; el que no calza va a Otros.
         var beatles = new[] { "The Beatles - Hey Jude.mp3", "The Beatles - Let It Be.mp3", "Queen - Under Pressure.mp3" };
         var batles = LocalClassifier.Classify(beatles, 5, Idioma.Español);
-        Assert("Local: tema por token compartido", batles.Any(r => r.Category == "Beatles" && r.Files.Count == 2), string.Join(",", batles.Select(b => $"{b.Category}({b.Files.Count})")));
-        Assert("Local: fallback por extensión", batles.Any(r => r.Category == "Audio" && r.Files.Count == 1));
+        Assert("Local Tema: grupo por token compartido", batles.Any(r => r.Category == "Beatles" && r.Files.Count == 2), string.Join(",", batles.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Local Tema: sin tema → Otros", batles.Any(r => r.Category == "Otros" && r.Files.Count == 1));
 
-        // Fallback mixto por extensión con y sin tema.
+        // Tema por tokens con y sin tema.
         var mixed = new[] { "vacaciones montaña.jpg", "vacaciones playa.jpg", "capitulo1.pdf" };
         var mixto = LocalClassifier.Classify(mixed, 5, Idioma.Español);
-        Assert("Local: tema sobre extensión (vacaciones)", mixto.Any(r => r.Category == "Vacaciones" && r.Files.Count == 2), string.Join(",", mixto.Select(b => $"{b.Category}({b.Files.Count})")));
-        Assert("Local: documento por extensión", mixto.Any(r => r.Category == "Documento"));
+        Assert("Local Tema: tema sobre archivo suelto (vacaciones)", mixto.Any(r => r.Category == "Vacaciones" && r.Files.Count == 2), string.Join(",", mixto.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Local Tema: pdf sin tema → Otros (sin extensión)", mixto.Any(r => r.Category == "Otros" && r.Files.Count == 1));
 
         // Stopwords no forman tema.
         var stop = new[] { "de el la.mp3", "de el la y.mp3" };
         var noTema = LocalClassifier.Classify(stop, 5, Idioma.Español);
-        Assert("Local: stopwords ignoradas (sin tema)", !noTema.Any(r => r.Category == "De" || r.Category == "El" || r.Category == "La"));
+        Assert("Local Tema: stopwords → Otros", noTema.All(r => r.Category == "Otros"));
 
         // Sufijo de serie en casi todos los archivos no colapsa todo en una categoría.
         var serie = new[] { "Marte, el planeta rojo ｜ Ciencia Para Dormir.m4a", "La Luna y su origen ｜ Ciencia Para Dormir.m4a", "Neptuno, gigante helado ｜ Ciencia Para Dormir.m4a", "La Luna vista de cerca ｜ Ciencia Para Dormir.m4a" };
         var serieRes = LocalClassifier.Classify(serie, 5, Idioma.Español);
-        Assert("Local: sufijo de serie no crea categoría gigante", !serieRes.Any(r => r.Category == "Ciencia" || r.Category == "Dormir"), string.Join(",", serieRes.Select(b => $"{b.Category}({b.Files.Count})")));
-        Assert("Local: subtema real sobre sufijo de serie (luna)", serieRes.Any(r => r.Category == "Luna" && r.Files.Count == 2), string.Join(",", serieRes.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Local Tema: sufijo de serie no crea categoría gigante", !serieRes.Any(r => r.Category == "Ciencia" || r.Category == "Dormir"), string.Join(",", serieRes.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Local Tema: subtema real sobre sufijo de serie (luna)", serieRes.Any(r => r.Category == "Luna" && r.Files.Count == 2), string.Join(",", serieRes.Select(b => $"{b.Category}({b.Files.Count})")));
 
         // Recorte por profundidad.
         var many = new[] { "rock-a.mp3", "rock-b.mp3", "pop-a.mp3", "pop-b.mp3", "jazz-a.mp3", "jazz-b.mp3", "folk-a.mp3", "folk-b.mp3", "solo-x.mp3" };
@@ -151,15 +151,16 @@ public static class SelfTest
         Assert("Local: sin archivos devuelve vacío", LocalClassifier.Classify(Array.Empty<string>(), 5, Idioma.Español).Count == 0);
         Assert("CapToDepth bajo límite no toca", LocalClassifier.CapToDepth(new[] { new ClassificationResult("A", new[] { "x" }) }, 5, "Otros").Count == 1);
 
-        // Despacho por tipo: imagen sin EXIF y sin tokens → extensión.
-        var fakeImg = new[] { "SCAN123.bmp", "IMG_456.png" };
-        var imgRes = LocalClassifier.Classify(fakeImg, 5, Idioma.Español, null);
-        Assert("Local: imagen sin metadatos → extensión Imagen", imgRes.Any(r => r.Category == "Imagen"), string.Join(",", imgRes.Select(b => $"{b.Category}({b.Files.Count})")));
+        // Música + Género: sin etiqueta de género → Otros (ni extensión, ni nombres ni artistas).
+        var sinTags = new[] { @"C:\x\Soda Stereo - De Música Ligera.mp3", @"C:\x\Aerosmith - Walk This Way.mp3" };
+        var genero = LocalClassifier.Classify(sinTags, 5, Idioma.Español, "Género");
+        Assert("Local Género: sin etiqueta → Otros", genero.Any(r => r.Category == "Otros" && r.Files.Count == 2), string.Join(",", genero.Select(b => $"{b.Category}({b.Files.Count})")));
+        Assert("Local Género: no aparecen artistas ni extensiones", !genero.Any(r => r.Category == "Soda" || r.Category == "Audio" || r.Category == "Aerosmith"));
 
-        // Categorías de metadatos conviven con token-genérico en una corrida.
-        var mixtoExt = new[] { "S02E03.mkv", "factura.pdf", "The Beatles - Hey Jude.mp3", "The Beatles - Let It Be.mp3" };
-        var mixtoRes = LocalClassifier.Classify(mixtoExt, 5, Idioma.Español, null);
-        Assert("Local: metadatos + tokens en una corrida", mixtoRes.Any(r => r.Category == "Beatles" && r.Files.Count == 2) && mixtoRes.Any(r => r.Category == "Temporada 2" && r.Files.Count == 1), string.Join(",", mixtoRes.Select(b => $"{b.Category}({b.Files.Count})")));
+        // Otro criterio sin metadatos disponibles también va a Otros.
+        var docs = new[] { "cap1.pdf", "cap2.pdf" };
+        var direc = LocalClassifier.Classify(docs, 5, Idioma.Español, "Director");
+        Assert("Local Director: sin fuente → Otros", direc.All(r => r.Category == "Otros"));
     }
 
     // ── Micro-clasificador por metadatos ──────────────────────────────
@@ -170,23 +171,29 @@ public static class SelfTest
         Directory.CreateDirectory(root);
         try
         {
-            // Video con patrón de serie → "Temporada 1".
+            // Video con patrón de serie: sin criterio (Tema) → null, ya no arma "Temporada".
             string serie = Path.Combine(root, "S01E05.mp4");
             File.WriteAllText(serie, "x");
-            Assert("Meta: S01E05 → Temporada 1", MetadataClassifier.TryClassify(serie, null, Idioma.Español) == "Temporada 1");
+            Assert("Meta: video solo temporada no calza en Tema", MetadataClassifier.TryClassify(serie, null, Idioma.Español) == null);
 
-            // Video sin patrón → año de creación del archivo.
+            // Video → año con criterio Año; sin género → null.
             string video = Path.Combine(root, "vacaciones.mp4");
             File.WriteAllText(video, "x");
             int year = File.GetLastWriteTime(video).Year;
-            Assert("Meta: video sin patrón → año", MetadataClassifier.TryClassify(video, null, Idioma.Español) == year.ToString());
+            Assert("Meta: video Año → año", MetadataClassifier.TryClassify(video, "Año", Idioma.Español) == year.ToString());
+            Assert("Meta: video no tiene Género", MetadataClassifier.TryClassify(video, "Género", Idioma.Español) == null);
+
+            // Imagen → año (sin EXIF usa fecha del archivo).
+            string img = Path.Combine(root, "foto.jpg");
+            File.WriteAllText(img, "x");
+            Assert("Meta: imagen Año → año", MetadataClassifier.TryClassify(img, "Año", Idioma.Español) == year.ToString());
 
             // Documento → año.
             string doc = Path.Combine(root, "nota.txt");
             File.WriteAllText(doc, "x");
-            Assert("Meta: doc → año", MetadataClassifier.TryClassify(doc, null, Idioma.Español) == year.ToString());
+            Assert("Meta: doc → año", MetadataClassifier.TryClassify(doc, "Año", Idioma.Español) == year.ToString());
 
-            // Audio sin tags válidos (no es audio real) → null → cae al fallback.
+            // Audio sin tags válidos (no es audio real) → null → cae a Otros.
             string fake = Path.Combine(root, "cancion.mp3");
             File.WriteAllText(fake, "no-es-audio");
             Assert("Meta: audio corrupto → null", MetadataClassifier.TryClassify(fake, "Género", Idioma.Español) == null);
@@ -195,6 +202,16 @@ public static class SelfTest
         {
             try { Directory.Delete(root, true); } catch { }
         }
+
+        // Normalización de géneros.
+        Assert("Genre: other → Otros", MetadataClassifier.NormalizeGenre("other", Idioma.Español) == "Otros");
+        Assert("Genre: compuesto → primer género", MetadataClassifier.NormalizeGenre("Electronic - Pop - New Wave - Synth", Idioma.Español) == "Electronic");
+        Assert("Genre: pop, rock → pop", MetadataClassifier.NormalizeGenre("Pop, Rock", Idioma.Español) == "Pop");
+        Assert("Genre: minúscula → título", MetadataClassifier.NormalizeGenre("pop", Idioma.Español) == "Pop");
+        Assert("Genre: r&b / rhythm and blues", MetadataClassifier.NormalizeGenre("Rhythm and Blues", Idioma.Español) == "R&B");
+        Assert("Genre: synthpop → new wave", MetadataClassifier.NormalizeGenre("Synthpop", Idioma.Español) == "New Wave");
+        Assert("Genre: films → banda sonora", MetadataClassifier.NormalizeGenre("Films", Idioma.Español) == "Banda sonora");
+        Assert("Genre: espacio a secas → null", MetadataClassifier.NormalizeGenre("  ", Idioma.Español) == null);
     }
 
     // ── Clasificador por lotes (fake client) ──────────────────────────
@@ -660,7 +677,7 @@ public static class SelfTest
 
             var (mode, criterion, depth) = (ClassificationModes.Find("Música")!, "Género", 5);
             // E2E vía clasificador local (algoritmo determinista, sin LLM).
-            var results = LocalClassifier.Classify(files, depth, Idioma.Español);
+            var results = LocalClassifier.Classify(files, depth, Idioma.Español, criterion);
             Assert("E2E: local clasifica todo", results.Sum(r => r.Files.Count) == 4, string.Join(",", results.Select(r => $"{r.Category}({r.Files.Count})")));
 
             string dest = Path.Combine(root, "out");

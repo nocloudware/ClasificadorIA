@@ -5,61 +5,89 @@ using ClasificadorIA.Models;
 
 namespace ClasificadorIA.Services;
 
-/// <summary>Extrae categorías desde los metadatos reales del archivo (EXIF, tags de audio, fecha). Fallback: null.</summary>
+/// <summary>Extrae la categoría de un archivo SOLO según el criterio elegido.
+/// Cada archivo aporta metadatos solo si ese criterio aplica a su tipo; si no, devuelve null.</summary>
 public static class MetadataClassifier
 {
+    private static readonly Dictionary<string, string> GenreMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["other"] = "Otros",
+        ["others"] = "Otros",
+        ["misc"] = "Otros",
+        ["miscellaneous"] = "Otros",
+        ["unknown"] = "Otros",
+        ["rhythm and blues"] = "R&B",
+        ["rnb"] = "R&B",
+        ["hip hop"] = "Hip Hop",
+        ["hip-hop"] = "Hip Hop",
+        ["rap"] = "Hip Hop",
+        ["synthpop"] = "New Wave",
+        ["synth pop"] = "New Wave",
+        ["synth-pop"] = "New Wave",
+        ["new romantic"] = "New Wave",
+        ["latin pop"] = "Latin",
+        ["latino"] = "Latin",
+        ["films"] = "Banda sonora",
+        ["film score"] = "Banda sonora",
+        ["soundtrack"] = "Banda sonora",
+        ["movie soundtrack"] = "Banda sonora"
+    };
+
     public static string? TryClassify(string path, string? criterionKey, Idioma idioma)
     {
+        string key = criterionKey ?? "Tema";
+        if (string.Equals(key, "Tema", StringComparison.OrdinalIgnoreCase))
+            return null; // "Tema" se resuelve por tokens en LocalClassifier.
+
         string ext = Path.GetExtension(path);
-        if (LocalClassifier.IsImageExt(ext)) return ImageDate(path, idioma);
-        if (LocalClassifier.IsAudioExt(ext)) return AudioTag(path, criterionKey, idioma);
-        if (LocalClassifier.IsVideoExt(ext)) return VideoCategory(path, idioma);
-        if (LocalClassifier.IsDocExt(ext)) return FileYear(path);
-        return null;
+        bool audio = LocalClassifier.IsAudioExt(ext);
+        bool video = LocalClassifier.IsVideoExt(ext);
+        bool image = LocalClassifier.IsImageExt(ext);
+        bool doc = LocalClassifier.IsDocExt(ext);
+
+        if (string.Equals(key, "Género", StringComparison.OrdinalIgnoreCase))
+            return audio ? AudioTag(path, f => NormalizeGenre(First(f.Tag.Genres), idioma)) : null;
+        if (string.Equals(key, "Artista", StringComparison.OrdinalIgnoreCase))
+            return audio ? AudioTag(path, f => Clean(First(f.Tag.Performers))) : null;
+        if (string.Equals(key, "Álbum", StringComparison.OrdinalIgnoreCase))
+            return audio ? AudioTag(path, f => Clean(f.Tag.Album)) : null;
+        if (string.Equals(key, "Época", StringComparison.OrdinalIgnoreCase))
+            return audio ? AudioTag(path, f => f.Tag.Year > 0
+                ? string.Format(Translations.Get("Decade", idioma), f.Tag.Year / 10 * 10) : null) : null;
+        if (string.Equals(key, "Año", StringComparison.OrdinalIgnoreCase))
+            return audio ? AudioTag(path, f => f.Tag.Year > 0 ? f.Tag.Year.ToString() : null)
+                : image ? ImageYear(path) : video || doc ? FileYear(path) : null;
+
+        return null; // Criterios sin fuente de metadatos local (Director, Saga, Cadena, Autor, Editorial).
     }
 
-    private static string? ImageDate(string path, Idioma idioma)
-    {
-        try
-        {
-            var dirs = MetadataExtractor.ImageMetadataReader.ReadMetadata(path);
-            var sub = dirs.OfType<MetadataExtractor.Formats.Exif.ExifSubIfdDirectory>().FirstOrDefault();
-            if (sub == null) return null;
-            if (!MetadataExtractor.DirectoryExtensions.TryGetDateTime(sub, MetadataExtractor.Formats.Exif.ExifDirectoryBase.TagDateTimeOriginal, out DateTime dt))
-                return null;
-            string month = CultureInfo
-                .GetCultureInfo(idioma == Idioma.Español ? "es" : "en")
-                .DateTimeFormat
-                .GetMonthName(dt.Month);
-            return $"{month} {dt.Year}";
-        }
-        catch (Exception) { return null; }
-    }
-
-    private static string? AudioTag(string path, string? criterionKey, Idioma idioma)
+    private static string? AudioTag(string path, Func<TagLib.File, string?> get)
     {
         try
         {
             using var f = TagLib.File.Create(path);
-            return criterionKey switch
-            {
-                "Artista" => First(f.Tag.Performers),
-                "Álbum" => string.IsNullOrWhiteSpace(f.Tag.Album) ? null : f.Tag.Album,
-                "Año" => f.Tag.Year > 0 ? f.Tag.Year.ToString() : null,
-                "Época" => f.Tag.Year > 0 ? string.Format(Translations.Get("Decade", idioma), f.Tag.Year / 10 * 10) : null,
-                _ => First(f.Tag.Genres) ?? First(f.Tag.Performers)
-            };
+            return Clean(get(f));
         }
         catch (Exception) { return null; }
     }
 
-    private static string? VideoCategory(string path, Idioma idioma)
+    /// <summary>Normaliza una etiqueta de género: recorta, colapsa espacios, separa géneros
+    /// compuestos ("Electronic - Pop - New Wave - Synth") y traduce alias comunes.</summary>
+    internal static string? NormalizeGenre(string? raw, Idioma idioma)
     {
-        string name = Path.GetFileNameWithoutExtension(path);
-        var m = Regex.Match(name, @"[Ss](\d{1,2})[Ee]\d{1,2}");
-        if (m.Success)
-            return string.Format(Translations.Get("Temporada", idioma), int.Parse(m.Groups[1].Value));
-        return FileYear(path);
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        string s = Regex.Replace(raw.Trim(), @"\s+", " ");
+        string tag = Regex.Split(s, @"\s*(?:-|;|,|/|\|)\s*")
+            .Select(p => p.Trim())
+            .FirstOrDefault(p => p.Length > 0) ?? s;
+        if (GenreMap.TryGetValue(tag, out string? mapped))
+            return mapped switch
+            {
+                "Otros" => Translations.Get("Otros", idioma),
+                "Banda sonora" => Translations.Get("CatSoundtrack", idioma),
+                _ => mapped
+            };
+        return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(tag.ToLowerInvariant());
     }
 
     private static string? FileYear(string path)
@@ -70,6 +98,23 @@ public static class MetadataClassifier
         }
         catch (Exception) { return null; }
     }
+
+    private static string? ImageYear(string path)
+    {
+        try
+        {
+            var dirs = MetadataExtractor.ImageMetadataReader.ReadMetadata(path);
+            var sub = dirs.OfType<MetadataExtractor.Formats.Exif.ExifSubIfdDirectory>().FirstOrDefault();
+            if (sub != null &&
+                MetadataExtractor.DirectoryExtensions.TryGetDateTime(sub, MetadataExtractor.Formats.Exif.ExifDirectoryBase.TagDateTimeOriginal, out DateTime dt))
+                return dt.Year.ToString();
+        }
+        catch (Exception) { }
+        return FileYear(path);
+    }
+
+    private static string? Clean(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static string? First(string[] values) =>
         values?.FirstOrDefault(v => !string.IsNullOrWhiteSpace(v));

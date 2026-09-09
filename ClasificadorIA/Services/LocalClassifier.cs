@@ -4,7 +4,8 @@ using ClasificadorIA.Models;
 
 namespace ClasificadorIA.Services;
 
-/// <summary>Clasificación local sin LLM: tema por tokens comunes del nombre + fallback por extensión.</summary>
+/// <summary>Clasificación local sin LLM. Clasifica SOLO por el criterio elegido:
+/// metadatos para el criterio, o tokens compartidos para "Tema". Lo que no calza va a "Otros".</summary>
 public static class LocalClassifier
 {
     private static readonly HashSet<string> Stopwords = new(StringComparer.OrdinalIgnoreCase)
@@ -30,36 +31,37 @@ public static class LocalClassifier
     {
         if (paths.Count == 0) return new List<ClassificationResult>();
 
-        // Paso 1: metadatos especializados (EXIF, tags, patrones, fechas).
-        var byMetadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        string others = Translations.Get("Otros", idioma);
+        bool byTokens = string.IsNullOrWhiteSpace(criterionKey) ||
+                        string.Equals(criterionKey, "Tema", StringComparison.OrdinalIgnoreCase);
+
+        var buckets = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var remaining = new List<string>();
         foreach (var p in paths)
         {
             string? cat = MetadataClassifier.TryClassify(p, criterionKey, idioma);
-            if (cat != null) byMetadata.TryAdd(p, cat);
+            if (cat != null) AddTo(buckets, cat, p);
+            else remaining.Add(p);
         }
 
-        // Paso 2: token-genérico sobre el resto.
-        var remaining = paths.Where(p => !byMetadata.ContainsKey(p)).ToList();
-        var (topicByFile, extByFile) = ClassifyByTokens(remaining, idioma);
-
-        var buckets = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (f, cat) in byMetadata)
-            AddTo(buckets, cat, f);
-        foreach (var f in remaining)
+        // Sin metadatos para el criterio: "Tema" agrupa por tokens compartidos; el resto va a Otros.
+        if (byTokens && remaining.Count > 0)
         {
-            string cat = topicByFile.TryGetValue(f, out string? topic)
-                ? topic
-                : extByFile.TryGetValue(f, out string? ext)
-                    ? ext
-                    : Translations.Get("Otros", idioma);
-            AddTo(buckets, cat, f);
+            var topicByFile = ClassifyByTokens(remaining);
+            foreach (var f in remaining)
+                AddTo(buckets, topicByFile.TryGetValue(f, out string? topic) ? topic : others, f);
+        }
+        else
+        {
+            foreach (var f in remaining)
+                AddTo(buckets, others, f);
         }
 
         var results = buckets
             .Where(kv => kv.Value.Count > 0)
             .Select(kv => new ClassificationResult(kv.Key, kv.Value.AsReadOnly()))
             .ToList();
-        return CapToDepth(results, depth, Translations.Get("Otros", idioma));
+        return CapToDepth(results, depth, others);
     }
 
     private static void AddTo(Dictionary<string, List<string>> buckets, string cat, string file)
@@ -69,12 +71,13 @@ public static class LocalClassifier
         list.Add(file);
     }
 
-    private static (Dictionary<string, string> Topic, Dictionary<string, string> Ext) ClassifyByTokens(
-        IReadOnlyList<string> filenames, Idioma idioma)
+    /// <summary>Categoría por tema: token compartido más frecuente en el nombre.
+    /// Un token en casi todos los archivos es el tema de la carpeta (p. ej. un sufijo de serie),
+    /// no un subtema: se descarta para no colapsar todo en una sola categoría.</summary>
+    private static Dictionary<string, string> ClassifyByTokens(IReadOnlyList<string> filenames)
     {
         var topicByFile = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var extByFile = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (filenames.Count == 0) return (topicByFile, extByFile);
+        if (filenames.Count == 0) return topicByFile;
 
         var tokensByFile = new Dictionary<string, List<string>>(filenames.Count, StringComparer.OrdinalIgnoreCase);
         var tokenFreq = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -86,9 +89,6 @@ public static class LocalClassifier
                 tokenFreq[t] = tokenFreq.TryGetValue(t, out int c) ? c + 1 : 1;
         }
 
-        // Categoría por tema: token compartido más frecuente que contiene el archivo.
-        // Un token en casi todos los archivos es el tema de la carpeta (p. ej. un sufijo de serie),
-        // no un subtema: se descarta para no colapsar todo en una sola categoría.
         double coverLimit = filenames.Count * 0.75;
         foreach (var (file, tokens) in tokensByFile)
         {
@@ -104,13 +104,7 @@ public static class LocalClassifier
                 topicByFile[file] = Capitalize(best);
         }
 
-        foreach (var file in filenames)
-        {
-            if (!topicByFile.ContainsKey(file))
-                extByFile[file] = ExtensionCategory(Path.GetExtension(file), idioma);
-        }
-
-        return (topicByFile, extByFile);
+        return topicByFile;
     }
 
     private static List<string> Tokenize(string filename)
@@ -124,16 +118,6 @@ public static class LocalClassifier
 
     private static string Capitalize(string token) =>
         token.Length == 0 ? token : char.ToUpperInvariant(token[0]) + token[1..];
-
-    private static string ExtensionCategory(string ext, Idioma idioma)
-    {
-        string baseExt = ext.TrimStart('.');
-        if (ExtAudio.Contains(baseExt)) return Translations.Get("CatAudio", idioma);
-        if (ExtVideo.Contains(baseExt)) return Translations.Get("CatVideo", idioma);
-        if (ExtImage.Contains(baseExt)) return Translations.Get("CatImage", idioma);
-        if (ExtDoc.Contains(baseExt)) return Translations.Get("CatDoc", idioma);
-        return Translations.Get("Otros", idioma);
-    }
 
     // Máximo `depth` categorías: conserva las depth-1 mayores y fusiona el resto en `others`.
     public static List<ClassificationResult> CapToDepth(IReadOnlyList<ClassificationResult> results, int depth, string others)
