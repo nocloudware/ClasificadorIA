@@ -2,6 +2,20 @@ namespace ClasificadorIA.Services;
 
 public static class DedupFilter
 {
+    private static readonly System.Text.RegularExpressions.Regex TrackPrefix =
+        new(@"^\s*\d+[\s._-]+", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    // Clave de comparación: sin el número de pista del inicio del nombre.
+    // "001. Wham! - Wake Me Up.mp3" y "042. Wham! - Wake Me Up.mp3" → misma clave.
+    // Nombres que son solo un número ("1984.mp3") quedan intactos.
+    public static string NormalizeKey(string name)
+    {
+        string baseName = System.IO.Path.GetFileNameWithoutExtension(name);
+        string normalized = TrackPrefix.Replace(baseName, "").Trim();
+        if (normalized.Length == 0) return baseName;
+        return normalized + System.IO.Path.GetExtension(name);
+    }
+
     // sameName=false → nada se elimina (diable la eliminación de duplicados).
     // minSize/mminDate determinan la dirección dentro de cada grupo del mismo nombre:
     //   true  → conserva el MAYOR (elimina el menor) de cada eje.
@@ -15,7 +29,7 @@ public static class DedupFilter
             return items.ToList();
 
         var result = new List<T>(items.Count);
-        foreach (var group in items.GroupBy(getName, StringComparer.OrdinalIgnoreCase))
+        foreach (var group in items.GroupBy(x => NormalizeKey(getName(x)), StringComparer.OrdinalIgnoreCase))
         {
             var kept = group.ToList();
             if (kept.Count > 1)

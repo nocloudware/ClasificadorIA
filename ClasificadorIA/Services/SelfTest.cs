@@ -746,5 +746,25 @@ public static class SelfTest
         // Combinación: mayor tamaño luego mayor fecha → a de 300 (fecha mar), no perder por fecha.
         var both = Keep(sameName: true, minSize: true, minDate: true);
         Assert("Dedup tamaño+fecha", both.Count == 3, string.Join(",", both));
+
+        // Clave normalizada: descuenta números de pista, respeta nombres que son solo números.
+        Assert("NormalizeKey descuenta pista",
+            DedupFilter.NormalizeKey("001. Wham! - Wake Me Up.mp3") == "Wham! - Wake Me Up.mp3" &&
+            DedupFilter.NormalizeKey("42 - Wham! - Wake Me Up.mp3") == "Wham! - Wake Me Up.mp3" &&
+            DedupFilter.NormalizeKey("01_Wake Me Up.mp3") == "Wake Me Up.mp3" &&
+            DedupFilter.NormalizeKey("1984.mp3") == "1984.mp3",
+            "NormalizeKey dio un resultado inesperado");
+
+        // Misma canción en dos recopilatorios → mismo grupo y queda el mayor.
+        var recos = new List<(string Name, long Size, DateTime Date)>
+        {
+            ("001. Wham! - Wake Me Up.mp3", 100, new DateTime(2024, 1, 1)),
+            ("042. Wham! - Wake Me Up.mp3", 130, new DateTime(2024, 2, 1)),
+        };
+        var recosKept = DedupFilter.Keep(recos, x => x.Name, x => x.Size, x => x.Date, true, true, false)
+            .Select(x => x.Name).ToList();
+        Assert("Dedup ignora numero de pista",
+            recosKept.Count == 1 && recosKept[0] == "042. Wham! - Wake Me Up.mp3",
+            string.Join(",", recosKept));
     }
 }
