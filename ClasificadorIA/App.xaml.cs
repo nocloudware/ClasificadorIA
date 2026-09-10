@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -37,6 +38,7 @@ public partial class App : System.Windows.Application
 
     private readonly List<BaseFileItem> _masterFiles = new();
     private readonly Dictionary<string, DateTime> _fileDates = new();
+    private bool _rebuilding;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -179,6 +181,24 @@ public partial class App : System.Windows.Application
         };
         _window.MainControl.OutputFolderChanged += (_, _) => SavePreferences();
 
+        _window.Files.CollectionChanged += (_, e) =>
+        {
+            if (e.Action == NotifyCollectionChangedAction.Remove && e.OldItems != null)
+            {
+                foreach (var old in e.OldItems)
+                    if (old is BaseFileItem f)
+                        _masterFiles.RemoveAll(m => m.FilePath.Equals(f.FilePath, StringComparison.OrdinalIgnoreCase));
+                ResetResults();
+                _window!.MainControl.UpdateCounters();
+            }
+            else if (e.Action == NotifyCollectionChangedAction.Reset && !_rebuilding)
+            {
+                _masterFiles.Clear();
+                ResetResults();
+                _window!.MainControl.UpdateCounters();
+            }
+        };
+
         _window.ThemeToggle.ThemeToggled += (_, args) =>
         {
             if (args is ThemeToggledEventArgs a)
@@ -266,9 +286,17 @@ public partial class App : System.Windows.Application
             f => f.FileName, f => f.FileSize, f => GetFileDate(f.FilePath),
             _options!.SameNameChecked, _options.MinSizeChecked, _options.MinDateChecked);
 
-        _window!.Files.Clear();
-        foreach (var item in visible.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase))
-            _window.Files.Add(item);
+        _rebuilding = true;
+        try
+        {
+            _window!.Files.Clear();
+            foreach (var item in visible.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase))
+                _window.Files.Add(item);
+        }
+        finally
+        {
+            _rebuilding = false;
+        }
 
         ResetResults();
         _window.MainControl.UpdateCounters();
@@ -633,10 +661,18 @@ public partial class App : System.Windows.Application
             CloseButtonText = Translations.Get("CloseBtn", ci),
             Owner = _window
         };
-        about.CheckUpdatesClick += (_, _) =>
+        about.CheckUpdatesClick += async (_, _) =>
         {
-            MessageBox.Show(Translations.Get("AppUpToDate"), Translations.Get("AboutTitle", ci),
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            var button = about.FindName("CheckUpdatesButton") as System.Windows.Controls.Button;
+            if (button != null) button.IsEnabled = false;
+            var check = await new UpdateService("nocloudware", "ClasificadorIA").CheckForUpdatesAsync(appVersion);
+            if (check != null && check.IsNewerVersion)
+                MessageBox.Show(string.Format(Translations.Get("UpdateAvailable", ci), check.Version, check.DownloadUrl),
+                    Translations.Get("AboutTitle", ci), MessageBoxButton.OK, MessageBoxImage.Information);
+            else
+                MessageBox.Show(Translations.Get("AppUpToDate"), Translations.Get("AboutTitle", ci),
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            if (button != null) button.IsEnabled = true;
         };
         about.ShowDialog();
     }

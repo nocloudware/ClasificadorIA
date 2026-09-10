@@ -39,9 +39,10 @@ public static class LocalClassifier
         var remaining = new List<string>();
         foreach (var p in paths)
         {
+            string name = Path.GetFileName(p);
             string? cat = MetadataClassifier.TryClassify(p, criterionKey, idioma);
-            if (cat != null) AddTo(buckets, cat, p);
-            else remaining.Add(p);
+            if (cat != null) AddTo(buckets, cat, name);
+            else remaining.Add(name);
         }
 
         // Sin metadatos para el criterio: "Tema" agrupa por tokens compartidos; el resto va a Otros.
