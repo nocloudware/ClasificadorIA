@@ -5,9 +5,11 @@
              Background="Transparent"
              BorderThickness="0"
              AllowDrop="True"
+             SelectionMode="Extended"
              ItemsSource="{Binding Items, RelativeSource={RelativeSource AncestorType=UserControl}}"
              DragEnter="OnDragEnter"
              Drop="OnDrop"
+             KeyDown="OnListKeyDown"
              ContextMenuOpening="OnContextMenuOpening">
         <ListBox.Style>
             <Style TargetType="ListBox" BasedOn="{StaticResource AetherFileListBoxStyle}">
@@ -17,16 +19,42 @@
         </ListBox.Style>
         <ListBox.ItemTemplate>
             <DataTemplate>
-                <StackPanel Orientation="Horizontal" Margin="{Binding ItemMargin, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                    <TextBlock Text="{Binding FileName}"
+                <Grid Margin="{Binding ItemMargin, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding FileName}"
                                Foreground="{DynamicResource TextPrimaryBrush}"
-                               FontSize="13"/>
-                    <TextBlock Text="{Binding StatusText}"
+                               FontSize="13"
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding StatusText}"
                                Foreground="{Binding StatusColor}"
                                FontSize="12"
                                FontWeight="SemiBold"
-                               Margin="8,0,0,0"/>
-                </StackPanel>
+                               Margin="8,0,0,0"
+                               VerticalAlignment="Center"/>
+
+                    <Button Grid.Column="2"
+                            Click="OnRowRemoveClick"
+                            Content="✕"
+                            Foreground="#E81123"
+                            FontSize="11"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="6,0"
+                            Margin="8,0,0,0"
+                            Cursor="Hand"
+                            Focusable="False"
+                            ToolTip="{Binding RemoveMenuItemText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            VerticalAlignment="Center"/>
+                </Grid>
             </DataTemplate>
         </ListBox.ItemTemplate>
         <ListBox.ContextMenu>

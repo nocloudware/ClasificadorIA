@@ -43,7 +43,7 @@ public partial class ShellWindow : Window
 
     public static readonly DependencyProperty OutputFolderTextProperty =
         DependencyProperty.Register(nameof(OutputFolderText), typeof(string), typeof(ShellWindow),
-            new PropertyMetadata("Same folder as source"));
+            new PropertyMetadata(""));
 
     public static readonly DependencyProperty WindowWidthProperty =
         DependencyProperty.Register(nameof(WindowWidth), typeof(double), typeof(ShellWindow),

@@ -10,7 +10,8 @@
         Icon="{Binding WindowIcon, RelativeSource={RelativeSource Self}}"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
-        AllowsTransparency="False">
+        AllowsTransparency="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
 
     <controls:BaseMainControl x:Name="MainShell"
                               HeaderDrag="OnShellHeaderDrag"

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json;
 using ClasificadorIA.Models;
 
@@ -5,6 +6,16 @@ namespace ClasificadorIA.Services;
 
 public static class ResponseParser
 {
+    // Claves JSON que puede devolver el modelo según el idioma del prompt (8 idiomas).
+    private static readonly string[] FileArrayKeys =
+        { "archivos", "files", "fichiers", "dateien", "arquivos", "file", "ファイル", "文件" };
+    private static readonly string[] ItemKeys =
+        { "archivo", "file", "fichier", "datei", "arquivo", "ファイル", "文件" };
+    private static readonly string[] CategoryKeys =
+        { "categoria", "category", "categorie", "kategorie", "カテゴリ", "分类" };
+    private static readonly string[] FinalMapKeys =
+        { "finales", "final", "finaux", "finais", "finali", "最終", "最终" };
+
     private static string Normalize(string name) => name.Trim().ToUpperInvariant();
 
     private static JsonDocument? ParseJson(string response)
@@ -22,7 +33,7 @@ public static class ResponseParser
         }
     }
 
-    // {"archivos":[{archivo,categoria}]} / EN {"files":[{file,category}]}
+    // {"archivos":[{archivo,categoria}]} y variantes en otros idiomas.
     public static Dictionary<string, string> ParseBatchAssignments(string response, IEnumerable<string> realFiles, Idioma idioma)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -36,25 +47,18 @@ public static class ResponseParser
         foreach (var real in realFiles)
             realByName.TryAdd(Normalize(real), real);
 
-        string primary = idioma == Idioma.Español ? "archivos" : "files";
-        string fallback = idioma == Idioma.Español ? "files" : "archivos";
         JsonElement? arr = null;
-        foreach (var key in new[] { primary, fallback })
+        foreach (var key in FileArrayKeys)
             if (root.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.Array) { arr = el; break; }
         if (arr == null) return result;
-
-        string fileKey = idioma == Idioma.Español ? "archivo" : "file";
-        string catKey = idioma == Idioma.Español ? "categoria" : "category";
-        string fileKeyFallback = idioma == Idioma.Español ? "file" : "archivo";
-        string catKeyFallback = idioma == Idioma.Español ? "category" : "categoria";
 
         foreach (var entry in arr.Value.EnumerateArray())
         {
             if (entry.ValueKind != JsonValueKind.Object) continue;
             string? name = null, cat = null;
-            foreach (var key in new[] { fileKey, fileKeyFallback })
+            foreach (var key in ItemKeys)
                 if (entry.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.String) { name = el.GetString(); break; }
-            foreach (var key in new[] { catKey, catKeyFallback })
+            foreach (var key in CategoryKeys)
                 if (entry.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.String) { cat = el.GetString(); break; }
 
             if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(cat)) continue;
@@ -66,7 +70,7 @@ public static class ResponseParser
         return result;
     }
 
-    // {"finales":{"Final":["cat1","cat2"]}} / EN {"final":{...}}
+    // {"finales":{"Final":["cat1","cat2"]}} y variantes en otros idiomas.
     public static Dictionary<string, string[]>? ParseConsolidationMap(string response, Idioma idioma)
     {
         if (string.IsNullOrWhiteSpace(response)) return null;
@@ -74,10 +78,8 @@ public static class ResponseParser
         if (doc == null) return null;
         var root = doc.RootElement;
 
-        string primary = idioma == Idioma.Español ? "finales" : "final";
-        string fallback = idioma == Idioma.Español ? "final" : "finales";
         JsonElement? map = null;
-        foreach (var key in new[] { primary, fallback })
+        foreach (var key in FinalMapKeys)
             if (root.TryGetProperty(key, out var el) && el.ValueKind == JsonValueKind.Object) { map = el; break; }
         if (map == null) return null;
 

@@ -72,6 +72,13 @@ public static class SelfTest
         string consEn = PromptGenerator.Consolidate(stats, 5, Idioma.Inglés);
         Assert("Consolidación EN pide formato final", consEn.Contains("\"final\""));
         Assert("Consolidación vacía", PromptGenerator.Consolidate(Array.Empty<CategoryStat>(), 5, Idioma.Español) == "");
+
+        string de = PromptGenerator.AssignmentBatch(mode, "Género", Idioma.Alemán, files);
+        Assert("Lote DE usa formato dateien", de.Contains("\"dateien\""));
+        Assert("Lote DE no usa template EN", !de.Contains("classifying songs"));
+
+        string consDe = PromptGenerator.Consolidate(stats, 5, Idioma.Alemán);
+        Assert("Consolidación DE usa final", consDe.Contains("\"final\""));
     }
 
     // ── Parser ─────────────────────────────────────────────────────────
@@ -112,6 +119,14 @@ public static class SelfTest
 
         Assert("Mapa sin JSON devuelve null", ResponseParser.ParseConsolidationMap("nada", Idioma.Español) == null);
         Assert("Mapa null devuelve null", ResponseParser.ParseConsolidationMap(null!, Idioma.Español) == null);
+
+        string de = """{"dateien": [{"datei": "album1.mp3", "kategorie": "Rock"}]}""";
+        var deAssign = ResponseParser.ParseBatchAssignments(de, realFiles, Idioma.Alemán);
+        Assert("Asignación DE con claves alemanas", deAssign.Count == 1 && deAssign["album1.mp3"] == "Rock");
+
+        string deMap = """{"final": {"Rock": ["rock"]}}""";
+        var deMapRes = ResponseParser.ParseConsolidationMap(deMap, Idioma.Alemán);
+        Assert("Mapa DE parsea key final", deMapRes != null && deMapRes["Rock"].Length == 1);
     }
 
     // ── Clasificador local ─────────────────────────────────────────────
@@ -432,6 +447,46 @@ public static class SelfTest
         Assert("Tr modos existen", ClassificationModes.All.Count == 5);
         Assert("Tr Otros EN", Translations.Get("Otros", Idioma.Inglés) == "Others");
         Assert("Tr BatchSize ES", Translations.Get("BatchSize", Idioma.Español) == "Tamaño de lote");
+
+        string assignFr = PromptGenerator.AssignmentBatch(ClassificationModes.Find("Música")!, "Género", Idioma.Francés, new[] { "a.mp3" });
+        Assert("Prompt 6 idiomas definidos", new[]
+        {
+            PromptGenerator.AssignmentBatch(ClassificationModes.Default, "Tema", Idioma.Francés, new[] { "a.mp3" }),
+            assignFr,
+            PromptGenerator.AssignmentBatch(ClassificationModes.Default, "Tema", Idioma.Alemán, new[] { "a.mp3" }),
+            PromptGenerator.AssignmentBatch(ClassificationModes.Default, "Tema", Idioma.Portugués, new[] { "a.mp3" }),
+            PromptGenerator.AssignmentBatch(ClassificationModes.Default, "Tema", Idioma.Italiano, new[] { "a.mp3" }),
+            PromptGenerator.AssignmentBatch(ClassificationModes.Default, "Tema", Idioma.Japonés, new[] { "a.mp3" }),
+            PromptGenerator.AssignmentBatch(ClassificationModes.Default, "Tema", Idioma.Chino, new[] { "a.mp3" }),
+        }.All(p => !string.IsNullOrWhiteSpace(p) && !p.Contains("classifying files")));
+
+        Assert("Prompt FR pide formato fichiers", assignFr.Contains("fichiers"));
+
+        // Cada idioma nuevo traduce de verdad (si faltara la clave, caería a EN y el assert falla).
+        var nuevos = new (Idioma Lang, string Otros, string ModoMusica)[]
+        {
+            (Idioma.Francés, "Autres", "🎵 Musique"),
+            (Idioma.Alemán, "Andere", "🎵 Musik"),
+            (Idioma.Portugués, "Outros", "🎵 Música"),
+            (Idioma.Italiano, "Altri", "🎵 Musica"),
+            (Idioma.Japonés, "その他", "🎵 音楽"),
+            (Idioma.Chino, "其他", "🎵 音乐"),
+        };
+        foreach (var (lang, otros, modo) in nuevos)
+        {
+            Assert($"Tr {lang} Otros", Translations.Get("Otros", lang) == otros);
+            Assert($"Tr {lang} Modo label", Translations.ModeLabel("Música", lang) == modo);
+            Assert($"Tr {lang} ActionButton", Translations.Get("ActionButton", lang) != "Organize");
+            Assert($"Tr {lang} UpdateAvailable", Translations.Get("UpdateAvailable", lang).Contains("{0}"));
+            Assert($"Tr {lang} criterio", ClassificationModes.TranslateCriterion("Género", lang) == (lang == Idioma.Portugués ? "Gênero" : lang switch
+            {
+                Idioma.Francés => "Genre",
+                Idioma.Alemán => "Genre",
+                Idioma.Italiano => "Genere",
+                Idioma.Japonés => "ジャンル",
+                _ => "类型",
+            }));
+        }
     }
 
     // ── Modos ──────────────────────────────────────────────────────────

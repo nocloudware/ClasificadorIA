@@ -109,38 +109,43 @@
                     </StackPanel>
 
                     <!-- Output folder selector -->
-                    <Border Grid.Row="3"
-                            Background="{DynamicResource SurfaceAltBrush}"
-                            CornerRadius="6"
-                            Padding="8,6"
-                            Margin="0,8,0,0">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Row="3" Margin="0,8,0,0">
+                        <TextBlock Text="{Binding OutputFolderLabel, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Margin="0,0,0,4"/>
+                        <Border Background="{DynamicResource SurfaceAltBrush}"
+                                CornerRadius="6"
+                                Padding="8,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
 
-                            <ui:SymbolIcon Grid.Column="0"
-                                           Symbol="Folder24"
-                                           Margin="0,0,8,0"
-                                           VerticalAlignment="Center"/>
+                                <ui:SymbolIcon Grid.Column="0"
+                                               Symbol="Folder24"
+                                               Margin="0,0,8,0"
+                                               VerticalAlignment="Center"/>
 
-                            <TextBlock x:Name="OutputFolderTextBlock"
-                                       Grid.Column="1"
-                                       Text="{Binding OutputFolderText, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                       Foreground="{DynamicResource TextSecondaryBrush}"
-                                       VerticalAlignment="Center"
-                                       TextTrimming="CharacterEllipsis"/>
+                                <TextBlock x:Name="OutputFolderTextBlock"
+                                           Grid.Column="1"
+                                           Text="{Binding OutputFolderText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                           VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis"/>
 
-                            <ui:Button Grid.Column="2"
-                                       Click="OnSelectOutputFolder"
-                                       Appearance="Transparent"
-                                       Padding="6,2"
-                                       Margin="8,0,0,0"
-                                       Content="{Binding ChangeButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
-                        </Grid>
-                    </Border>
+                                <ui:Button Grid.Column="2"
+                                           Click="OnSelectOutputFolder"
+                                           Appearance="Transparent"
+                                           Padding="6,2"
+                                           Margin="8,0,0,0"
+                                           Content="{Binding ChangeButtonText, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            </Grid>
+                        </Border>
+                    </StackPanel>
 
                     <!-- Status counters - CENTERED -->
                     <controls:StatusBar x:Name="StatusBarControl"

@@ -78,7 +78,7 @@ public partial class App : System.Windows.Application
             using var doc = JsonDocument.Parse(json);
             var s = doc.RootElement.GetProperty("Settings");
             bool dark = s.TryGetProperty("DarkTheme", out var t) ? t.GetBoolean() : true;
-            Idioma lang = s.TryGetProperty("Language", out var l) && l.GetString() == "en" ? Idioma.Inglés : Idioma.Español;
+            Idioma lang = LanguageHelpers.FromCulture(s.TryGetProperty("Language", out var l) ? l.GetString() : null);
             string? output = s.TryGetProperty("DefaultOutputPath", out var o) ? o.GetString() : null;
             return (dark, lang, output);
         }
@@ -89,7 +89,7 @@ public partial class App : System.Windows.Application
     {
         try
         {
-            string lang = Translations.Current == Idioma.Inglés ? "en" : "es";
+            string lang = Translations.Current.CultureCode();
             string? output = _window?.MainControl.OutputFolderText;
             var prefs = new { Settings = new { DarkTheme = _themeService.IsDarkTheme, Language = lang, DefaultOutputPath = output } };
             File.WriteAllText(SettingsPath, JsonSerializer.Serialize(prefs, new JsonSerializerOptions { WriteIndented = true }));
@@ -108,7 +108,7 @@ public partial class App : System.Windows.Application
             WindowIcon = LoadIcon()
         };
         _window.MainControl.AppTitle = Translations.Get("AppTitle");
-        _window.MainControl.OptionsPanelMinWidth = 340;
+        _window.MainControl.OptionsPanelMinWidth = 300;
         _window.MainControl.OutputFolderText = !string.IsNullOrEmpty(savedOutput)
             ? savedOutput
             : Translations.Get("OutputFolderDefault");
@@ -116,11 +116,17 @@ public partial class App : System.Windows.Application
         var flagBase = "pack://application:,,,/NoCloudware.UI.Core;component/Assets/Flags/";
         _window.LanguageSelector.Languages = new System.Collections.ObjectModel.ObservableCollection<LanguageItem>
         {
-            new("Español", $"{flagBase}flag-es.png", "es"),
-            new("English", $"{flagBase}flag-uk.png", "en")
+            new("Español",   $"{flagBase}flag-es.png", "es"),
+            new("English",   $"{flagBase}flag-uk.png", "en"),
+            new("Français",  $"{flagBase}flag-fr.png", "fr"),
+            new("Deutsch",   $"{flagBase}flag-de.png", "de"),
+            new("Português", $"{flagBase}flag-br.png", "pt"),
+            new("Italiano",  $"{flagBase}flag-it.png", "it"),
+            new("日本語",     $"{flagBase}flag-jp.png", "ja"),
+            new("中文",       $"{flagBase}flag-cn.png", "zh"),
         };
         _window.LanguageSelector.ComboMaxWidth = 36;
-        _window.LanguageSelector.SetLanguage(Translations.Current == Idioma.Inglés ? "en" : "es");
+        _window.LanguageSelector.SetLanguage(Translations.Current.CultureCode());
     }
 
     private static BitmapImage LoadIcon()
@@ -151,6 +157,7 @@ public partial class App : System.Windows.Application
         _window.MainControl.AppTagline = Translations.Get("AppTagline");
         _window.MainControl.SelectFilesButtonText = Translations.Get("SelectFilesBtn");
         _window.MainControl.ChangeButtonText = Translations.Get("ChangeBtn");
+        _window.MainControl.OutputFolderLabel = Translations.Get("OutputFolder");
 
         _window.MainControl.StatusBar.TotalLabel = Translations.Get("StatusTotal");
         _window.MainControl.StatusBar.ProcessedLabel = Translations.Get("StatusProcessed");
@@ -161,6 +168,7 @@ public partial class App : System.Windows.Application
         _window.FileListBox.ClearAllMenuItemText = Translations.Get("ClearAll");
 
         if (string.IsNullOrEmpty(_window.MainControl.OutputFolderText) ||
+            _window.MainControl.OutputFolderText.Equals("Same folder as source", StringComparison.OrdinalIgnoreCase) ||
             _window.MainControl.OutputFolderText == Translations.Get("OutputFolderDefault", t))
             _window.MainControl.OutputFolderText = Translations.Get("OutputFolderDefault");
 
@@ -212,7 +220,7 @@ public partial class App : System.Windows.Application
         {
             if (args is LanguageChangedEventArgs a)
             {
-                Translations.Current = a.CultureCode == "en" ? Idioma.Inglés : Idioma.Español;
+                Translations.Current = LanguageHelpers.FromCulture(a.CultureCode);
                 ApplyLanguage();
                 SavePreferences();
             }

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -78,6 +79,21 @@ public partial class FileListBox : UserControl
         {
             Items.Remove(item);
         }
+    }
+
+    private void OnRowRemoveClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button b && b.DataContext is BaseFileItem item)
+        {
+            Items.Remove(item);
+        }
+    }
+
+    private void OnListKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Delete) return;
+        foreach (var item in FileListBoxControl.SelectedItems.Cast<BaseFileItem>().ToList())
+            Items.Remove(item);
     }
 
     private void OnClearAllClicked(object sender, RoutedEventArgs e)

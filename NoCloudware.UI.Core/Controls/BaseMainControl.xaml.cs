@@ -38,7 +38,11 @@ public partial class BaseMainControl : UserControl
 
     public static readonly DependencyProperty OutputFolderTextProperty =
         DependencyProperty.Register(nameof(OutputFolderText), typeof(string), typeof(BaseMainControl),
-            new FrameworkPropertyMetadata("Same folder as source", FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+            new FrameworkPropertyMetadata("", FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
+    public static readonly DependencyProperty OutputFolderLabelProperty =
+        DependencyProperty.Register(nameof(OutputFolderLabel), typeof(string), typeof(BaseMainControl),
+            new PropertyMetadata(""));
 
     public static readonly DependencyProperty AboutButtonTextProperty =
         DependencyProperty.Register(nameof(AboutButtonText), typeof(string), typeof(BaseMainControl),
@@ -294,6 +298,12 @@ public partial class BaseMainControl : UserControl
     {
         get => (string)GetValue(OutputFolderTextProperty);
         set => SetValue(OutputFolderTextProperty, value);
+    }
+
+    public string OutputFolderLabel
+    {
+        get => (string)GetValue(OutputFolderLabelProperty);
+        set => SetValue(OutputFolderLabelProperty, value);
     }
 
     public string AboutButtonText
