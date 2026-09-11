@@ -24,16 +24,15 @@ public partial class FileListBox : UserControl
         DependencyProperty.Register(nameof(ClearAllMenuItemText), typeof(string), typeof(FileListBox),
             new PropertyMetadata("Clear All", OnMenuItemTextChanged));
 
-    public static readonly DependencyProperty ItemMarginProperty =
-        DependencyProperty.Register(nameof(ItemMargin), typeof(Thickness), typeof(FileListBox),
-            new PropertyMetadata(new Thickness(0, 3, 0, 3)));
-
     public static readonly RoutedEvent FilesDroppedEvent =
         EventManager.RegisterRoutedEvent(
             nameof(FilesDropped),
             RoutingStrategy.Bubble,
             typeof(DropZone.FilesDroppedEventHandler),
             typeof(FileListBox));
+
+    private const double StatusColumnWidth = 100;
+    private const double RemoveColumnWidth = 44;
 
     public ObservableCollection<BaseFileItem> Items
     {
@@ -43,7 +42,6 @@ public partial class FileListBox : UserControl
 
     public string RemoveMenuItemText { get => (string)GetValue(RemoveMenuItemTextProperty); set => SetValue(RemoveMenuItemTextProperty, value); }
     public string ClearAllMenuItemText { get => (string)GetValue(ClearAllMenuItemTextProperty); set => SetValue(ClearAllMenuItemTextProperty, value); }
-    public Thickness ItemMargin { get => (Thickness)GetValue(ItemMarginProperty); set => SetValue(ItemMarginProperty, value); }
 
     public event DropZone.FilesDroppedEventHandler FilesDropped
     {
@@ -52,6 +50,7 @@ public partial class FileListBox : UserControl
     }
 
     private readonly TextBlock[] _headers = new TextBlock[4];
+    private readonly GridViewColumn[] _metaColumns = new GridViewColumn[4];
 
     public FileListBox()
     {
@@ -60,12 +59,30 @@ public partial class FileListBox : UserControl
         _headers[1] = H1;
         _headers[2] = H2;
         _headers[3] = H3;
+        _metaColumns[0] = MetaCol0;
+        _metaColumns[1] = MetaCol1;
+        _metaColumns[2] = MetaCol2;
+        _metaColumns[3] = MetaCol3;
+        Loaded += (_, _) => ComputeColumns();
+        SizeChanged += (_, _) => ComputeColumns();
     }
 
     public void SetMetadataHeaders(IReadOnlyList<string> headers)
     {
         for (int i = 0; i < _headers.Length; i++)
             _headers[i].Text = headers.Count > i ? headers[i] : "";
+        ComputeColumns();
+    }
+
+    private void ComputeColumns()
+    {
+        double usable = Math.Max(0, ActualWidth - StatusColumnWidth - RemoveColumnWidth);
+        double metaWidth = _headers[0].Text.Length > 0 ? usable / 12.0 : 0;
+        NameCol.Width = Math.Max(0, usable - 4 * metaWidth);
+        foreach (var column in _metaColumns)
+            column.Width = metaWidth;
+        StatusCol.Width = StatusColumnWidth;
+        RemoveCol.Width = RemoveColumnWidth;
     }
 
     private void OnDragEnter(object sender, DragEventArgs e)

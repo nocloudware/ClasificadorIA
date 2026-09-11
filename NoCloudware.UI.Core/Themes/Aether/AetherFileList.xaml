@@ -1,42 +1,41 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Style x:Key="AetherFileListBoxStyle" TargetType="ListBox">
-        <Setter Property="Background" Value="Transparent"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
-        <Setter Property="AllowDrop" Value="True"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ListBox">
-                    <ScrollViewer Focusable="False">
-                        <ItemsPresenter/>
-                    </ScrollViewer>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <Style x:Key="AetherFileItemStyle" TargetType="ListBoxItem">
+    <Style x:Key="AetherFileListViewItemStyle" TargetType="ListViewItem">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}"/>
         <Setter Property="Padding" Value="0"/>
         <Setter Property="BorderThickness" Value="0"/>
         <Setter Property="MinHeight" Value="0"/>
         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
     </Style>
 
-    <DataTemplate x:Key="AetherFileItemTemplate">
-        <StackPanel Orientation="Horizontal" Margin="0,1">
-            <TextBlock Text="{Binding FileName}"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       FontSize="13"/>
-            <TextBlock Text="{Binding StatusText}"
-                       Foreground="{Binding StatusColor}"
-                       FontWeight="SemiBold"
-                       Margin="8,0,0,0"/>
-        </StackPanel>
-    </DataTemplate>
+    <Style x:Key="AetherFileListViewStyle" TargetType="ListView">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="AllowDrop" Value="True"/>
+        <Setter Property="ItemContainerStyle" Value="{StaticResource AetherFileListViewItemStyle}"/>
+    </Style>
+
+    <Style x:Key="AetherGridColumnHeaderStyle" TargetType="GridViewColumnHeader">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="GridViewColumnHeader">
+                    <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
     <!-- Colors for file status indicators -->
     <SolidColorBrush x:Key="StatusProcessedBrush" Color="#4CAF50"/>
