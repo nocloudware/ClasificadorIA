@@ -41,6 +41,15 @@ public static class MetadataClassifier
         return cells;
     }
 
+    public static Dictionary<string, string?> GetAllMetadata(string path, Idioma idioma)
+    {
+        var result = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        string[] allCriteria = { "Tema", "Género", "Artista", "Álbum", "Época", "Año", "Director", "Saga", "Cadena", "Autor", "Editorial" };
+        foreach (var c in allCriteria)
+            result[c] = TryClassify(path, c, idioma);
+        return result;
+    }
+
     public static string? TryClassify(string path, string? criterionKey, Idioma idioma)
     {
         string key = criterionKey ?? "Tema";

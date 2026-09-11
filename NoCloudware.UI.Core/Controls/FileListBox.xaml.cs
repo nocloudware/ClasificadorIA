@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Input;
 using NoCloudware.UI.Core.ViewModels;
 
@@ -14,7 +16,7 @@ public partial class FileListBox : UserControl
             nameof(Items),
             typeof(ObservableCollection<BaseFileItem>),
             typeof(FileListBox),
-            new PropertyMetadata(new ObservableCollection<BaseFileItem>()));
+            new PropertyMetadata(new ObservableCollection<BaseFileItem>(), OnItemsChanged));
 
     public static readonly DependencyProperty RemoveMenuItemTextProperty =
         DependencyProperty.Register(nameof(RemoveMenuItemText), typeof(string), typeof(FileListBox),
@@ -51,6 +53,7 @@ public partial class FileListBox : UserControl
 
     private readonly TextBlock[] _headers = new TextBlock[4];
     private readonly GridViewColumn[] _metaColumns = new GridViewColumn[4];
+    private CollectionViewSource? _cvs;
 
     public FileListBox()
     {
@@ -63,9 +66,24 @@ public partial class FileListBox : UserControl
         _metaColumns[1] = MetaCol1;
         _metaColumns[2] = MetaCol2;
         _metaColumns[3] = MetaCol3;
+        BindGrouping();
         Loaded += (_, _) => ComputeColumns();
         SizeChanged += (_, _) => ComputeColumns();
     }
+
+    private static void OnItemsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is FileListBox f) f.BindGrouping();
+    }
+
+    private void BindGrouping()
+    {
+        _cvs = new CollectionViewSource { Source = Items };
+        _cvs.GroupDescriptions.Add(new PropertyGroupDescription(nameof(BaseFileItem.Category)));
+        FileListBoxControl.ItemsSource = _cvs.View;
+    }
+
+    public void RefreshGrouping() => _cvs?.View?.Refresh();
 
     public void SetMetadataHeaders(IReadOnlyList<string> headers)
     {

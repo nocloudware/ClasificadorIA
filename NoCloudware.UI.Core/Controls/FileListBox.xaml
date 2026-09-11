@@ -6,7 +6,6 @@
               BorderThickness="0"
               AllowDrop="True"
               SelectionMode="Extended"
-              ItemsSource="{Binding Items, RelativeSource={RelativeSource AncestorType=UserControl}}"
               DragEnter="OnDragEnter"
               Drop="OnDrop"
               KeyDown="OnListKeyDown"
@@ -14,6 +13,19 @@
         <ListView.Style>
             <Style TargetType="ListView" BasedOn="{StaticResource AetherFileListViewStyle}"/>
         </ListView.Style>
+        <ListView.GroupStyle>
+            <GroupStyle>
+                <GroupStyle.HeaderTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}"
+                                   FontWeight="Bold" FontSize="13"
+                                   Foreground="{DynamicResource TextPrimaryBrush}"
+                                   Margin="4,8,0,4"
+                                   ToolTip="{Binding ItemCount, StringFormat='{}{0} archivos'}"/>
+                    </DataTemplate>
+                </GroupStyle.HeaderTemplate>
+            </GroupStyle>
+        </ListView.GroupStyle>
         <ListView.View>
             <GridView AllowsColumnReorder="False"
                       ColumnHeaderContainerStyle="{StaticResource AetherGridColumnHeaderStyle}">

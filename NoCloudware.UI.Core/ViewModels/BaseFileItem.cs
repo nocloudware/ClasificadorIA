@@ -35,4 +35,10 @@ public partial class BaseFileItem : ObservableObject
     private bool _canOpen;
 [ObservableProperty]
     private string[] _metadataCells = Array.Empty<string>();
+
+    [ObservableProperty]
+    private Dictionary<string, string?> _allMetadata = new(StringComparer.OrdinalIgnoreCase);
+
+    [ObservableProperty]
+    private string _category = "Archivos";
 }

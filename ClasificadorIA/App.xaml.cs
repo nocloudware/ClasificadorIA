@@ -268,19 +268,38 @@ public partial class App : System.Windows.Application
             if (!_masterFiles.Any(f => f.FilePath.Equals(item.FilePath, StringComparison.OrdinalIgnoreCase)))
                 _masterFiles.Add(item);
 
+        var idioma = Translations.Current;
+        var (mode, _, _) = GetOptions();
+
         foreach (var path in paths)
         {
             if (FileFilters.IsSystemFile(Path.GetFileName(path))) continue;
+            if (!File.Exists(path)) continue; // guard: carpetas/inaccesibles
             if (_masterFiles.Any(f => f.FilePath.Equals(path, StringComparison.OrdinalIgnoreCase))) continue;
-            _masterFiles.Add(new BaseFileItem
+
+            long size = 0;
+            try { size = new FileInfo(path).Length; } catch { continue; }
+
+            var item = new BaseFileItem
             {
                 FilePath = path,
                 FileName = Path.GetFileName(path),
-                FileSize = new FileInfo(path).Length
-            });
+                FileSize = size
+            };
+            item.AllMetadata = MetadataClassifier.GetAllMetadata(path, idioma);
+            item.MetadataCells = MapCells(item.AllMetadata, mode);
+            _masterFiles.Add(item);
         }
-ApplyDedupFilter();
+        ApplyDedupFilter();
         RefreshMetadata();
+    }
+
+    private static string[] MapCells(Dictionary<string, string?> all, ClassificationMode mode)
+    {
+        var cells = new string[mode.Criterios.Length];
+        for (int i = 0; i < cells.Length; i++)
+            cells[i] = all.TryGetValue(mode.Criterios[i], out var v) ? v ?? "" : "";
+        return cells;
     }
 
     private void RefreshMetadata()
@@ -292,7 +311,7 @@ ApplyDedupFilter();
                 ? Array.Empty<string>()
                 : ClassificationModes.GetCriteria(mode, idioma));
         foreach (var item in _window.Files)
-            item.MetadataCells = MetadataClassifier.GetCells(item.FilePath, mode, idioma);
+            item.MetadataCells = MapCells(item.AllMetadata, mode);
     }
 
     private DateTime GetFileDate(string path)
@@ -483,52 +502,26 @@ ApplyDedupFilter();
     private void SetResults(List<ClassificationResult> results)
     {
         _results = results;
-        ShowClassificationTree();
-        _window!.MainControl.UpdateCounters();
+
+        var fileToCategory = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var r in results)
+            foreach (var name in r.Files)
+                fileToCategory[name] = r.Category;
+
+        foreach (var item in _window!.Files)
+            item.Category = fileToCategory.TryGetValue(item.FileName, out var cat) ? cat : "Sin categoría";
+
+        _window.FileListBox.RefreshGrouping();
+        _window.MainControl.UpdateCounters();
     }
 
     private void ResetResults()
     {
         _results = new List<ClassificationResult>();
-        if (_window != null)
-            _window.MainControl.FileListCustomContent = null;
-    }
-
-    private void ShowClassificationTree()
-    {
-        var root = new DockPanel();
-
-        var header = new TextBlock
-        {
-            Text = string.Format(Translations.Get("CategoriasDetectadas"), _results.Count),
-            FontWeight = FontWeights.SemiBold,
-            Foreground = System.Windows.Media.Brushes.Transparent,
-            Margin = new Thickness(0, 0, 0, 8)
-        };
-        header.Foreground = (System.Windows.Media.Brush)FindResource("TextPrimaryBrush");
-        DockPanel.SetDock(header, Dock.Top);
-        root.Children.Add(header);
-
-        var tree = new TreeView
-        {
-            Background = (System.Windows.Media.Brush)FindResource("SurfaceBrush"),
-            BorderThickness = new Thickness(0)
-        };
-        foreach (var r in _results.OrderByDescending(r => r.Files.Count))
-        {
-            var catNode = new TreeViewItem
-            {
-                Header = $"{r.Category}  ({r.Files.Count})",
-                IsExpanded = false,
-                FontWeight = FontWeights.SemiBold
-            };
-            foreach (var file in r.Files)
-                catNode.Items.Add(new TreeViewItem { Header = file, FontWeight = FontWeights.Normal });
-            tree.Items.Add(catNode);
-        }
-        root.Children.Add(tree);
-
-        _window!.MainControl.FileListCustomContent = root;
+        if (_window == null) return;
+        foreach (var item in _window.Files)
+            item.Category = "Archivos";
+        _window.FileListBox.RefreshGrouping();
     }
 
     // ── Organizar ─────────────────────────────────────────────────────

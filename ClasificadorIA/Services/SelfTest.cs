@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using ClasificadorIA.Models;
 using ClasificadorIA.Panels;
 using NoCloudware.UI.Core.Controls;
+using NoCloudware.UI.Core.ViewModels;
 
 namespace ClasificadorIA.Services;
 
@@ -238,6 +239,13 @@ public static class SelfTest
             var cellsGenerico = MetadataClassifier.GetCells(video, ClassificationModes.Default, Idioma.Español);
             Assert("Cells Genérico: 1 celda", cellsGenerico.Length == 1, $"got {cellsGenerico.Length}");
             Assert("Cells Genérico: Tema sin fuente → vacía", cellsGenerico[0] == "");
+
+            var allMeta = MetadataClassifier.GetAllMetadata(video, Idioma.Español);
+            Assert("AllMeta: contiene todas las claves", allMeta.ContainsKey("Género") && allMeta.ContainsKey("Artista") && allMeta.ContainsKey("Año"));
+            Assert("AllMeta: video Año existe", allMeta.TryGetValue("Año", out var vidYear) && vidYear == year.ToString());
+
+            var item = new BaseFileItem { FileName = "test.mp3" };
+            Assert("Category default: Archivos", item.Category == "Archivos");
         }
         finally
         {
