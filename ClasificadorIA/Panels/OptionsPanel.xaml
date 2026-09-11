@@ -17,9 +17,6 @@
             <TextBlock x:Name="PanelTitleText"
                        Style="{DynamicResource AppTitleStyle}"
                        FontSize="15"/>
-            <TextBlock x:Name="PanelSubtitleText"
-                       Style="{DynamicResource AppTaglineStyle}"
-                       FontSize="11"/>
         </StackPanel>
 
         <!-- Body -->
@@ -33,20 +30,40 @@
                         Padding="8,6"
                         Margin="0,2,0,0">
                     <StackPanel>
-                        <TextBlock x:Name="DedupTitleText"
-                                   Style="{DynamicResource AetherCaptionStyle}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                            <CheckBox x:Name="SameNameCheck"
-                                      Style="{DynamicResource AetherCheckBoxStyle}"
-                                      IsChecked="True"
-                                      Margin="0,0,10,0"/>
-                            <CheckBox x:Name="MinSizeCheck"
-                                      Style="{DynamicResource AetherCheckBoxStyle}"
-                                      IsChecked="True"
-                                      Margin="0,0,10,0"/>
-                            <CheckBox x:Name="MinDateCheck"
-                                      Style="{DynamicResource AetherCheckBoxStyle}"
-                                      IsChecked="True"/>
+                        <CheckBox x:Name="DedupMasterCheck"
+                                  Style="{DynamicResource AetherCheckBoxStyle}"
+                                  IsChecked="True"/>
+                        <StackPanel x:Name="DedupRowContainer" Margin="0,2,0,0">
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <CheckBox x:Name="SizeCheck"
+                                          Style="{DynamicResource AetherCheckBoxStyle}"
+                                          IsChecked="True"
+                                          MinWidth="84"
+                                          Margin="0,0,12,0"/>
+                                <RadioButton x:Name="SizeMenorRadio"
+                                             GroupName="SizeDirection"
+                                             Style="{DynamicResource AetherRadioButtonStyle}"
+                                             IsChecked="True"
+                                             Margin="0,0,12,0"/>
+                                <RadioButton x:Name="SizeMayorRadio"
+                                             GroupName="SizeDirection"
+                                             Style="{DynamicResource AetherRadioButtonStyle}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <CheckBox x:Name="DateCheck"
+                                          Style="{DynamicResource AetherCheckBoxStyle}"
+                                          IsChecked="True"
+                                          MinWidth="84"
+                                          Margin="0,0,12,0"/>
+                                <RadioButton x:Name="DateMenorRadio"
+                                             GroupName="DateDirection"
+                                             Style="{DynamicResource AetherRadioButtonStyle}"
+                                             IsChecked="True"
+                                             Margin="0,0,12,0"/>
+                                <RadioButton x:Name="DateMayorRadio"
+                                             GroupName="DateDirection"
+                                             Style="{DynamicResource AetherRadioButtonStyle}"/>
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </Border>

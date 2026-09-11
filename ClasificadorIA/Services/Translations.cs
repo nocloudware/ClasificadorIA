@@ -75,7 +75,7 @@ public static class Translations
             ["DuplicateFileNames"] = "Existen archivos con el mismo nombre de distintas carpetas: {0}. Clasifícalos por separado.",
             // Dedup panel
             ["DedupTitle"] = "Eliminar duplicados", ["DedupSameName"] = "Mismo nombre",
-            ["DedupMinSize"] = "Menor tamaño", ["DedupMinDate"] = "Menor fecha",
+            ["DedupMinSize"] = "Menor tamaño", ["DedupMinDate"] = "Menor fecha", ["DedupMaster"] = "Eliminar duplicados (Nombre)", ["DedupSize"] = "Tamaño", ["DedupDate"] = "Fecha", ["DedupMin"] = "Menor", ["DedupMax"] = "Mayor",
             // Errors
             ["ErrorIn"] = "Error en", ["Error"] = "Error",
             // BYOK dialog
@@ -156,7 +156,7 @@ public static class Translations
             ["DuplicateFileNames"] = "Files with the same name exist from different folders: {0}. Classify them separately.",
             // Dedup panel
             ["DedupTitle"] = "Remove duplicates", ["DedupSameName"] = "Same name",
-            ["DedupMinSize"] = "Smallest size", ["DedupMinDate"] = "Oldest date",
+            ["DedupMinSize"] = "Smallest size", ["DedupMinDate"] = "Oldest date", ["DedupMaster"] = "Remove duplicates (Name)", ["DedupSize"] = "Size", ["DedupDate"] = "Date", ["DedupMin"] = "Smallest", ["DedupMax"] = "Largest",
             // Errors
             ["ErrorIn"] = "Error in", ["Error"] = "Error",
             // BYOK dialog
@@ -237,7 +237,7 @@ public static class Translations
             ["DuplicateFileNames"] = "Des fichiers de dossiers différents portent le même nom : {0}. Classez-les séparément.",
             // Dedup panel
             ["DedupTitle"] = "Supprimer les doublons", ["DedupSameName"] = "Même nom",
-            ["DedupMinSize"] = "Plus petite taille", ["DedupMinDate"] = "Date la plus ancienne",
+            ["DedupMinSize"] = "Plus petite taille", ["DedupMinDate"] = "Date la plus ancienne", ["DedupMaster"] = "Supprimer les doublons (nom)", ["DedupSize"] = "Taille", ["DedupDate"] = "Date", ["DedupMin"] = "Plus petit", ["DedupMax"] = "Plus grand",
             // Errors
             ["ErrorIn"] = "Erreur dans", ["Error"] = "Erreur",
             // BYOK dialog
@@ -318,7 +318,7 @@ public static class Translations
             ["DuplicateFileNames"] = "Dateien mit demselben Namen existieren in verschiedenen Ordnern: {0}. Klassifizieren Sie sie getrennt.",
             // Dedup panel
             ["DedupTitle"] = "Duplikate entfernen", ["DedupSameName"] = "Gleicher Name",
-            ["DedupMinSize"] = "Kleinste Größe", ["DedupMinDate"] = "Ältestes Datum",
+            ["DedupMinSize"] = "Kleinste Größe", ["DedupMinDate"] = "Ältestes Datum", ["DedupMaster"] = "Duplikate entfernen (Name)", ["DedupSize"] = "Größe", ["DedupDate"] = "Datum", ["DedupMin"] = "Kleinste", ["DedupMax"] = "Größte",
             // Errors
             ["ErrorIn"] = "Fehler in", ["Error"] = "Fehler",
             // BYOK dialog
@@ -399,7 +399,7 @@ public static class Translations
             ["DuplicateFileNames"] = "Existem arquivos com o mesmo nome em pastas diferentes: {0}. Classifique-os separadamente.",
             // Dedup panel
             ["DedupTitle"] = "Remover duplicados", ["DedupSameName"] = "Mesmo nome",
-            ["DedupMinSize"] = "Menor tamanho", ["DedupMinDate"] = "Data mais antiga",
+            ["DedupMinSize"] = "Menor tamanho", ["DedupMinDate"] = "Data mais antiga", ["DedupMaster"] = "Remover duplicados (nome)", ["DedupSize"] = "Tamanho", ["DedupDate"] = "Data", ["DedupMin"] = "Menor", ["DedupMax"] = "Maior",
             // Errors
             ["ErrorIn"] = "Erro em", ["Error"] = "Erro",
             // BYOK dialog
@@ -480,7 +480,7 @@ public static class Translations
             ["DuplicateFileNames"] = "Esistono file con lo stesso nome da cartelle diverse: {0}. Classificali separatamente.",
             // Dedup panel
             ["DedupTitle"] = "Rimuovi duplicati", ["DedupSameName"] = "Stesso nome",
-            ["DedupMinSize"] = "Dimensione minore", ["DedupMinDate"] = "Data meno recente",
+            ["DedupMinSize"] = "Dimensione minore", ["DedupMinDate"] = "Data meno recente", ["DedupMaster"] = "Rimuovi duplicati (nome)", ["DedupSize"] = "Dimensione", ["DedupDate"] = "Data", ["DedupMin"] = "Minore", ["DedupMax"] = "Maggiore",
             // Errors
             ["ErrorIn"] = "Errore in", ["Error"] = "Errore",
             // BYOK dialog
@@ -561,7 +561,7 @@ public static class Translations
             ["DuplicateFileNames"] = "別のフォルダーに同名のファイルがあります：{0}。個別に分類してください。",
             // Dedup panel
             ["DedupTitle"] = "重複を削除", ["DedupSameName"] = "同じ名前",
-            ["DedupMinSize"] = "最小サイズ", ["DedupMinDate"] = "最も古い日付",
+            ["DedupMinSize"] = "最小サイズ", ["DedupMinDate"] = "最も古い日付", ["DedupMaster"] = "重複を削除（名前）", ["DedupSize"] = "サイズ", ["DedupDate"] = "日付", ["DedupMin"] = "小さい", ["DedupMax"] = "大きい",
             // Errors
             ["ErrorIn"] = "エラー:", ["Error"] = "エラー",
             // BYOK dialog
@@ -642,7 +642,7 @@ public static class Translations
             ["DuplicateFileNames"] = "不同文件夹中存在同名文件：{0}。请分别分类。",
             // Dedup panel
             ["DedupTitle"] = "删除重复文件", ["DedupSameName"] = "同名文件",
-            ["DedupMinSize"] = "最小体积", ["DedupMinDate"] = "最早日期",
+            ["DedupMinSize"] = "最小体积", ["DedupMinDate"] = "最早日期", ["DedupMaster"] = "删除重复文件（名称）", ["DedupSize"] = "大小", ["DedupDate"] = "日期", ["DedupMin"] = "较小", ["DedupMax"] = "较大",
             // Errors
             ["ErrorIn"] = "错误于", ["Error"] = "错误",
             // BYOK dialog

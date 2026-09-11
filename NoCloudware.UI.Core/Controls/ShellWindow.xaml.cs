@@ -228,19 +228,6 @@ public partial class ShellWindow : Window
         MainShell.ExitClick += (s, e) => RaiseEvent(new RoutedEventArgs(ExitClickEvent));
         MainShell.FilesDropped += (s, e) =>
             RaiseEvent(new FilesDroppedEventArgs(FilesDroppedEvent, this, e.FilePaths));
-
-        Loaded += OnLoaded;
-    }
-
-    private void OnLoaded(object sender, RoutedEventArgs e)
-    {
-        UpdateBackgroundFromResources();
-    }
-
-    public void UpdateBackgroundFromResources()
-    {
-        if (Application.Current?.Resources["WindowBackgroundBrush"] is Brush brush)
-            Background = brush;
     }
 
     // ── Internal handlers ─────────────────────────────────────────────

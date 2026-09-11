@@ -16,14 +16,14 @@ public static class DedupFilter
         return normalized + System.IO.Path.GetExtension(name);
     }
 
-    // sameName=false → nada se elimina (diable la eliminación de duplicados).
-    // minSize/mminDate determinan la dirección dentro de cada grupo del mismo nombre:
-    //   true  → conserva el MAYOR (elimina el menor) de cada eje.
+    // sameName=false → nada se elimina (desactiva la eliminación de duplicados).
+    // sizeEnabled/dateEnabled activan cada eje; los pares *KeepLargest fijan la dirección:
+    //   true  → conserva el MAYOR (elimina el menor) de ese eje.
     //   false → conserva el MENOR (elimina el mayor).
     // Se aplican en serie: tamaño primero, fecha sobre los supervivientes.
     public static List<T> Keep<T>(IReadOnlyList<T> items,
         Func<T, string> getName, Func<T, long> getSize, Func<T, DateTime> getDate,
-        bool sameName, bool minSize, bool minDate)
+        bool sameName, bool sizeEnabled, bool sizeKeepLargest, bool dateEnabled, bool dateKeepLargest)
     {
         if (!sameName)
             return items.ToList();
@@ -34,9 +34,10 @@ public static class DedupFilter
             var kept = group.ToList();
             if (kept.Count > 1)
             {
-                kept = ApplyRule(kept, x => getSize(x), minSize);
-                if (kept.Count > 1)
-                    kept = ApplyRule(kept, x => getDate(x), minDate);
+                if (sizeEnabled)
+                    kept = ApplyRule(kept, x => getSize(x), sizeKeepLargest);
+                if (kept.Count > 1 && dateEnabled)
+                    kept = ApplyRule(kept, x => getDate(x), dateKeepLargest);
             }
             result.AddRange(kept);
         }

@@ -14,16 +14,21 @@ public partial class OptionsPanel : UserControl
         {
             ApplyLanguage();
             ApplyMethodState();
+            ApplyDedupRowState();
         };
         Translations.LanguageChanged += (_, _) => ApplyLanguage();
 
         MethodLocal.Checked += (_, _) => ApplyMethodState();
         MethodIa.Checked += (_, _) => ApplyMethodState();
+        DedupMasterCheck.Checked += (_, _) => ApplyDedupRowState();
+        DedupMasterCheck.Unchecked += (_, _) => ApplyDedupRowState();
     }
 
-    public bool SameNameChecked => SameNameCheck.IsChecked == true;
-    public bool MinSizeChecked => MinSizeCheck.IsChecked == true;
-    public bool MinDateChecked => MinDateCheck.IsChecked == true;
+    public bool SameNameChecked => DedupMasterCheck.IsChecked == true;
+    public bool SizeEnabled => SizeCheck.IsChecked == true;
+    public bool SizeMenor => SizeMenorRadio.IsChecked == true;
+    public bool DateEnabled => DateCheck.IsChecked == true;
+    public bool DateMenor => DateMenorRadio.IsChecked == true;
 
     public int BatchSize
     {
@@ -47,14 +52,21 @@ public partial class OptionsPanel : UserControl
         LocalDisclaimerText.Visibility = ia ? Visibility.Collapsed : Visibility.Visible;
     }
 
+    private void ApplyDedupRowState()
+    {
+        DedupRowContainer.IsEnabled = DedupMasterCheck.IsChecked == true;
+    }
+
     private void ApplyLanguage()
     {
         PanelTitleText.Text = Translations.Get("OptionsPanelTitle");
-        PanelSubtitleText.Text = Translations.Get("AppTagline");
-        DedupTitleText.Text = Translations.Get("DedupTitle");
-        SameNameCheck.Content = Translations.Get("DedupSameName");
-        MinSizeCheck.Content = Translations.Get("DedupMinSize");
-        MinDateCheck.Content = Translations.Get("DedupMinDate");
+        DedupMasterCheck.Content = Translations.Get("DedupMaster");
+        SizeCheck.Content = Translations.Get("DedupSize");
+        SizeMenorRadio.Content = Translations.Get("DedupMin");
+        SizeMayorRadio.Content = Translations.Get("DedupMax");
+        DateCheck.Content = Translations.Get("DedupDate");
+        DateMenorRadio.Content = Translations.Get("DedupMin");
+        DateMayorRadio.Content = Translations.Get("DedupMax");
         MethodLabel.Text = Translations.Get("Method");
         MethodLocal.Content = Translations.Get("MethodLocal");
         MethodIa.Content = Translations.Get("MethodIA");

@@ -779,27 +779,36 @@ public static class SelfTest
             ("c.txt", 10, new DateTime(2024, 1, 1)),
         };
 
-        List<string> Keep(bool sameName, bool minSize, bool minDate) =>
-            DedupFilter.Keep(items, x => x.Name, x => x.Size, x => x.Date, sameName, minSize, minDate)
+        List<string> Keep(bool sameName, bool sizeEnabled, bool sizeKeepLargest, bool dateEnabled, bool dateKeepLargest) =>
+            DedupFilter.Keep(items, x => x.Name, x => x.Size, x => x.Date,
+                sameName, sizeEnabled, sizeKeepLargest, dateEnabled, dateKeepLargest)
                 .Select(x => x.Name).ToList();
 
-        var none = Keep(sameName: false, minSize: true, minDate: true);
-        Assert("Dedup mismoNombre=false muestra todos", none.Count == 6, $"got {none.Count}");
+        var none = Keep(sameName: false, sizeEnabled: true, sizeKeepLargest: true, dateEnabled: true, dateKeepLargest: true);
+        Assert("Dedup master off muestra todos", none.Count == 6, $"got {none.Count}");
 
-        // minSize=true → conserva el mayor de cada grupo (a de 300, b de 70).
-        var bySize = Keep(sameName: true, minSize: true, minDate: false);
+        // Ejes desactivados → no se filtra nada dentro de cada grupo.
+        var noAxes = Keep(sameName: true, sizeEnabled: false, sizeKeepLargest: true, dateEnabled: false, dateKeepLargest: true);
+        Assert("Dedup sin ejes conserva todo el grupo", noAxes.Count == 6, string.Join(",", noAxes));
+
+        // Tamaño Mayor → conserva el mayor de cada grupo (a de 300, b de 70).
+        var bySize = Keep(sameName: true, sizeEnabled: true, sizeKeepLargest: true, dateEnabled: false, dateKeepLargest: true);
         Assert("Dedup mayor tamaño", bySize.Count == 3 && bySize.Count(n => n == "a.txt") == 1, string.Join(",", bySize));
 
-        // minSize=false → conserva el menor (a de 100, b de 50).
-        var bySizeMin = Keep(sameName: true, minSize: false, minDate: false);
+        // Tamaño Menor → conserva el menor (a de 100, b de 50).
+        var bySizeMin = Keep(sameName: true, sizeEnabled: true, sizeKeepLargest: false, dateEnabled: false, dateKeepLargest: true);
         Assert("Dedup menor tamaño", bySizeMin.Count == 3 && bySizeMin.Count(n => n == "a.txt") == 1, string.Join(",", bySizeMin));
 
-        // minDate=true → conserva el de fecha mayor (a de jun, b de abr).
-        var byDate = Keep(sameName: true, minSize: false, minDate: true);
+        // Fecha Mayor → conserva el más reciente (a de jun, b de abr).
+        var byDate = Keep(sameName: true, sizeEnabled: false, sizeKeepLargest: true, dateEnabled: true, dateKeepLargest: true);
         Assert("Dedup mayor fecha", byDate.Count == 3 && byDate.Count(n => n == "a.txt") == 1, string.Join(",", byDate));
 
-        // Combinación: mayor tamaño luego mayor fecha → a de 300 (fecha mar), no perder por fecha.
-        var both = Keep(sameName: true, minSize: true, minDate: true);
+        // Fecha Menor → conserva el más antiguo (a de ene, b de feb).
+        var byDateMin = Keep(sameName: true, sizeEnabled: false, sizeKeepLargest: true, dateEnabled: true, dateKeepLargest: false);
+        Assert("Dedup menor fecha", byDateMin.Count == 3 && byDateMin.Count(n => n == "a.txt") == 1, string.Join(",", byDateMin));
+
+        // Combinación en serie: tamaño Menor luego fecha Menor → a de 100, b de 50.
+        var both = Keep(sameName: true, sizeEnabled: true, sizeKeepLargest: false, dateEnabled: true, dateKeepLargest: false);
         Assert("Dedup tamaño+fecha", both.Count == 3, string.Join(",", both));
 
         // Clave normalizada: descuenta números de pista, respeta nombres que son solo números.
@@ -816,7 +825,7 @@ public static class SelfTest
             ("001. Wham! - Wake Me Up.mp3", 100, new DateTime(2024, 1, 1)),
             ("042. Wham! - Wake Me Up.mp3", 130, new DateTime(2024, 2, 1)),
         };
-        var recosKept = DedupFilter.Keep(recos, x => x.Name, x => x.Size, x => x.Date, true, true, false)
+        var recosKept = DedupFilter.Keep(recos, x => x.Name, x => x.Size, x => x.Date, true, true, true, false, true)
             .Select(x => x.Name).ToList();
         Assert("Dedup ignora numero de pista",
             recosKept.Count == 1 && recosKept[0] == "042. Wham! - Wake Me Up.mp3",

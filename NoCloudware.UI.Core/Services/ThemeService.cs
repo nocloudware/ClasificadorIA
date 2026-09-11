@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using Wpf.Ui.Appearance;
+using Wpf.Ui.Controls;
 
 namespace NoCloudware.UI.Core.Services;
 
@@ -21,7 +22,8 @@ public class ThemeService
     {
         IsDarkTheme = isDark;
         var theme = isDark ? ApplicationTheme.Dark : ApplicationTheme.Light;
-        ApplicationThemeManager.Apply(theme);
+        // None: la ventana pinta su propio fondo (WindowBackgroundBrush); Mica (default) lo vuelve negro al cambiar de tema.
+        ApplicationThemeManager.Apply(theme, WindowBackdropType.None);
 
         // Swap custom brush dictionary for Aether theme
         if (Application.Current == null) return;

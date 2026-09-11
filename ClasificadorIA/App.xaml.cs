@@ -247,12 +247,16 @@ public partial class App : System.Windows.Application
         _options.CriterionCombo.SelectionChanged += (_, _) => ResetResults();
         _options.DepthCombo.SelectionChanged += (_, _) => ResetResults();
 
-        _options.SameNameCheck.Checked += (_, _) => ApplyDedupFilter();
-        _options.SameNameCheck.Unchecked += (_, _) => ApplyDedupFilter();
-        _options.MinSizeCheck.Checked += (_, _) => ApplyDedupFilter();
-        _options.MinSizeCheck.Unchecked += (_, _) => ApplyDedupFilter();
-        _options.MinDateCheck.Checked += (_, _) => ApplyDedupFilter();
-        _options.MinDateCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _options.DedupMasterCheck.Checked += (_, _) => ApplyDedupFilter();
+        _options.DedupMasterCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _options.SizeCheck.Checked += (_, _) => ApplyDedupFilter();
+        _options.SizeCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _options.SizeMenorRadio.Checked += (_, _) => ApplyDedupFilter();
+        _options.SizeMayorRadio.Checked += (_, _) => ApplyDedupFilter();
+        _options.DateCheck.Checked += (_, _) => ApplyDedupFilter();
+        _options.DateCheck.Unchecked += (_, _) => ApplyDedupFilter();
+        _options.DateMenorRadio.Checked += (_, _) => ApplyDedupFilter();
+        _options.DateMayorRadio.Checked += (_, _) => ApplyDedupFilter();
     }
 
     // ── Archivos ──────────────────────────────────────────────────────
@@ -292,7 +296,8 @@ public partial class App : System.Windows.Application
     {
         var visible = DedupFilter.Keep(_masterFiles,
             f => f.FileName, f => f.FileSize, f => GetFileDate(f.FilePath),
-            _options!.SameNameChecked, _options.MinSizeChecked, _options.MinDateChecked);
+            _options!.SameNameChecked, _options.SizeEnabled, !_options.SizeMenor,
+            _options.DateEnabled, !_options.DateMenor);
 
         _rebuilding = true;
         try
