@@ -51,9 +51,21 @@ public partial class FileListBox : UserControl
         remove => RemoveHandler(FilesDroppedEvent, value);
     }
 
+    private readonly TextBlock[] _headers = new TextBlock[4];
+
     public FileListBox()
     {
         InitializeComponent();
+        _headers[0] = H0;
+        _headers[1] = H1;
+        _headers[2] = H2;
+        _headers[3] = H3;
+    }
+
+    public void SetMetadataHeaders(IReadOnlyList<string> headers)
+    {
+        for (int i = 0; i < _headers.Length; i++)
+            _headers[i].Text = headers.Count > i ? headers[i] : "";
     }
 
     private void OnDragEnter(object sender, DragEventArgs e)

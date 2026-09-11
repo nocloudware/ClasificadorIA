@@ -224,6 +224,20 @@ public static class SelfTest
             string fake = Path.Combine(root, "cancion.mp3");
             File.WriteAllText(fake, "no-es-audio");
             Assert("Meta: audio corrupto → null", MetadataClassifier.TryClassify(fake, "Género", Idioma.Español) == null);
+
+            // Celdas por modo: una por criterio, alineadas con GetCriteria (encabezados), vacías sin fuente.
+            var cellsMusica = MetadataClassifier.GetCells(video, ClassificationModes.Find("Música")!, Idioma.Español);
+            Assert("Cells Música: 4 celdas", cellsMusica.Length == 4, $"got {cellsMusica.Length}");
+            Assert("Cells Música: video sin tags → todas vacías", cellsMusica.All(c => c == ""), string.Join(",", cellsMusica));
+
+            var cellsPeliculas = MetadataClassifier.GetCells(video, ClassificationModes.Find("Películas")!, Idioma.Español);
+            Assert("Cells Películas: 4 celdas", cellsPeliculas.Length == 4, $"got {cellsPeliculas.Length}");
+            Assert("Cells Películas: Año en slot 2", cellsPeliculas[2] == year.ToString(), string.Join(",", cellsPeliculas));
+            Assert("Cells Películas: Género sin fuente vacío", cellsPeliculas[0] == "");
+
+            var cellsGenerico = MetadataClassifier.GetCells(video, ClassificationModes.Default, Idioma.Español);
+            Assert("Cells Genérico: 1 celda", cellsGenerico.Length == 1, $"got {cellsGenerico.Length}");
+            Assert("Cells Genérico: Tema sin fuente → vacía", cellsGenerico[0] == "");
         }
         finally
         {

@@ -33,4 +33,6 @@ public partial class BaseFileItem : ObservableObject
 
     [ObservableProperty]
     private bool _canOpen;
+[ObservableProperty]
+    private string[] _metadataCells = Array.Empty<string>();
 }

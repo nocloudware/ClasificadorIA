@@ -243,7 +243,7 @@ public partial class App : System.Windows.Application
         _options.ByokButton.Click += (_, _) => OpenByokDialog();
         _options.CancelClassifyLink.Click += (_, _) => _classifyCts?.Cancel();
 
-        _options.ModeCombo.SelectionChanged += (_, _) => ResetResults();
+        _options.ModeCombo.SelectionChanged += (_, _) => { ResetResults(); RefreshMetadata(); };
         _options.CriterionCombo.SelectionChanged += (_, _) => ResetResults();
         _options.DepthCombo.SelectionChanged += (_, _) => ResetResults();
 
@@ -279,7 +279,17 @@ public partial class App : System.Windows.Application
                 FileSize = new FileInfo(path).Length
             });
         }
-        ApplyDedupFilter();
+ApplyDedupFilter();
+        RefreshMetadata();
+    }
+
+    private void RefreshMetadata()
+    {
+        var (mode, _, _) = GetOptions();
+        var idioma = Translations.Current;
+        _window!.FileListBox.SetMetadataHeaders(ClassificationModes.GetCriteria(mode, idioma));
+        foreach (var item in _window.Files)
+            item.MetadataCells = MetadataClassifier.GetCells(item.FilePath, mode, idioma);
     }
 
     private DateTime GetFileDate(string path)

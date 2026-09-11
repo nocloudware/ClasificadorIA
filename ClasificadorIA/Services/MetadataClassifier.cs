@@ -33,6 +33,14 @@ public static class MetadataClassifier
         ["movie soundtrack"] = "Banda sonora"
     };
 
+    public static string[] GetCells(string path, ClassificationMode mode, Idioma idioma)
+    {
+        var cells = new string[mode.Criterios.Length];
+        for (int i = 0; i < cells.Length; i++)
+            cells[i] = TryClassify(path, mode.Criterios[i], idioma) ?? "";
+        return cells;
+    }
+
     public static string? TryClassify(string path, string? criterionKey, Idioma idioma)
     {
         string key = criterionKey ?? "Tema";
