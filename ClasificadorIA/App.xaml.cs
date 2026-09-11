@@ -287,7 +287,10 @@ ApplyDedupFilter();
     {
         var (mode, _, _) = GetOptions();
         var idioma = Translations.Current;
-        _window!.FileListBox.SetMetadataHeaders(ClassificationModes.GetCriteria(mode, idioma));
+        _window!.FileListBox.SetMetadataHeaders(
+            string.Equals(mode.Key, "Genérico", StringComparison.OrdinalIgnoreCase)
+                ? Array.Empty<string>()
+                : ClassificationModes.GetCriteria(mode, idioma));
         foreach (var item in _window.Files)
             item.MetadataCells = MetadataClassifier.GetCells(item.FilePath, mode, idioma);
     }
