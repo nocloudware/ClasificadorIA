@@ -18,11 +18,11 @@ public partial class FileListBox : UserControl
 
     public static readonly DependencyProperty RemoveMenuItemTextProperty =
         DependencyProperty.Register(nameof(RemoveMenuItemText), typeof(string), typeof(FileListBox),
-            new PropertyMetadata("Remove"));
+            new PropertyMetadata("Remove", OnMenuItemTextChanged));
 
     public static readonly DependencyProperty ClearAllMenuItemTextProperty =
         DependencyProperty.Register(nameof(ClearAllMenuItemText), typeof(string), typeof(FileListBox),
-            new PropertyMetadata("Clear All"));
+            new PropertyMetadata("Clear All", OnMenuItemTextChanged));
 
     public static readonly DependencyProperty ItemMarginProperty =
         DependencyProperty.Register(nameof(ItemMargin), typeof(Thickness), typeof(FileListBox),
@@ -101,18 +101,18 @@ public partial class FileListBox : UserControl
         Items.Clear();
     }
 
+    private static void OnMenuItemTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not FileListBox f) return;
+        if (e.Property == RemoveMenuItemTextProperty && f.RemoveItem is not null)
+            f.RemoveItem.Header = (string?)e.NewValue;
+        else if (e.Property == ClearAllMenuItemTextProperty && f.ClearAllItem is not null)
+            f.ClearAllItem.Header = (string?)e.NewValue;
+    }
+
     private void OnContextMenuOpening(object sender, ContextMenuEventArgs e)
     {
-        if (FileListBoxControl.ContextMenu is not { } menu) return;
-
-        foreach (var item in menu.Items.OfType<MenuItem>())
-        {
-            item.IsEnabled = item.Header.ToString() switch
-            {
-                string s when s == RemoveMenuItemText => FileListBoxControl.SelectedItem is not null,
-                string s when s == ClearAllMenuItemText => Items.Count > 0,
-                _ => true
-            };
-        }
+        RemoveItem.IsEnabled = FileListBoxControl.SelectedItem is not null;
+        ClearAllItem.IsEnabled = Items.Count > 0;
     }
 }

@@ -59,8 +59,8 @@
         </ListBox.ItemTemplate>
         <ListBox.ContextMenu>
             <ContextMenu>
-                <MenuItem Header="{Binding RemoveMenuItemText, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="OnRemoveClicked"/>
-                <MenuItem Header="{Binding ClearAllMenuItemText, RelativeSource={RelativeSource AncestorType=UserControl}}" Click="OnClearAllClicked"/>
+                <MenuItem x:Name="RemoveItem" Header="Remove" Click="OnRemoveClicked"/>
+                <MenuItem x:Name="ClearAllItem" Header="Clear All" Click="OnClearAllClicked"/>
             </ContextMenu>
         </ListBox.ContextMenu>
     </ListBox>
