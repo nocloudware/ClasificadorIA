@@ -30,6 +30,7 @@ public static class SelfTest
         RunAiClientOffline();
         RunDedupFilter();
         RunFileListCustomContent();
+        RunFileListTree();
         RunEndToEnd();
 
         if (Failures.Count == 0)
@@ -747,6 +748,45 @@ public static class SelfTest
         Assert("DP null: panel oculto otra vez", panel.Visibility == Visibility.Collapsed);
         Assert("DP null: lista visible otra vez", fileList.Visibility == Visibility.Visible);
         Assert("DP null: contenido limpio", panel.Content == null);
+    }
+
+    // ── Tree de FileListBox (STA) ─────────────────────────────────────
+
+    private static void RunFileListTree()
+    {
+        var box = new FileListBox();
+        var a = new BaseFileItem { FilePath = @"C:\musica\a.mp3", FileName = "a.mp3", SourceFolder = @"C:\musica" };
+        var b = new BaseFileItem { FilePath = @"C:\musica\rock\b.mp3", FileName = "b.mp3", SourceFolder = @"C:\musica" };
+        var c = new BaseFileItem { FilePath = @"C:\docs\c.pdf", FileName = "c.pdf", SourceFolder = @"C:\docs" };
+        a.Category = "Rock";
+        b.Category = "Rock";
+        c.Category = "Docs";
+        box.Items.Add(a);
+        box.Items.Add(b);
+        box.Items.Add(c);
+
+        box.SetShowCategories(false);
+        var rows = box.Rows.ToList();
+        int folders = rows.OfType<TreeFolderNode>().Count();
+        int files = rows.OfType<BaseFileItem>().Count();
+        Assert("Tree carpetas: 2 raíces + 1 subcarpeta", folders == 3, $"folders={folders}");
+        Assert("Tree carpeta: 3 archivos desplegados", files == 3, $"files={files}");
+        Assert("Tree: subcarpeta indentada",
+            rows.OfType<TreeFolderNode>().First(n => n.DisplayName == "rock").Depth == 1);
+
+        var rock = rows.OfType<TreeFolderNode>().First(n => n.DisplayName == "rock");
+        box.ToggleToggle(rock.Key);
+        rows = box.Rows.ToList();
+        Assert("Tree: colapsar carpeta oculta archivos", rows.OfType<BaseFileItem>().Count() == 2);
+
+        box.SetShowCategories(true);
+        rows = box.Rows.ToList();
+        Assert("Tree categorías: una fila por categoría, colapsadas", rows.OfType<TreeFolderNode>().Count() == 2, $"{rows.Count}");
+        Assert("Tree categorías: archivos ocultos al colapsar", rows.OfType<BaseFileItem>().Count() == 0);
+        var cat = rows.OfType<TreeFolderNode>().First();
+        box.ToggleToggle(cat.Key);
+        rows = box.Rows.ToList();
+        Assert("Tree categorías: expandir muestra archivos", rows.OfType<BaseFileItem>().Count() > 0);
     }
 
     // ── E2E (flujo App sin UI) ─────────────────────────────────────────────

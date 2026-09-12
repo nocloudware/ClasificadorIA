@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -11,6 +12,7 @@ namespace NoCloudware.UI.Core.Controls;
 
 public partial class FileListBox : UserControl
 {
+    private static readonly StringComparer PathComparer = StringComparer.OrdinalIgnoreCase;
     public static readonly DependencyProperty ItemsProperty =
         DependencyProperty.Register(
             nameof(Items),
@@ -58,7 +60,11 @@ public partial class FileListBox : UserControl
 
     private readonly TextBlock[] _headers = new TextBlock[4];
     private readonly GridViewColumn[] _metaColumns = new GridViewColumn[4];
-    private CollectionViewSource? _cvs;
+    private readonly ObservableCollection<object> _rows = new();
+    private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);
+    private bool _showCategories;
+    private Action? _itemsHook;
+    private bool _rebuildPending;
 
     public FileListBox()
     {
@@ -71,24 +77,204 @@ public partial class FileListBox : UserControl
         _metaColumns[1] = MetaCol1;
         _metaColumns[2] = MetaCol2;
         _metaColumns[3] = MetaCol3;
-        BindGrouping();
+        FileListBoxControl.ItemsSource = _rows;
+        UpdateItemsSubscription();
         Loaded += (_, _) => ComputeColumns();
         SizeChanged += (_, _) => ComputeColumns();
     }
 
+    public IReadOnlyList<object> Rows => _rows;
+
     private static void OnItemsChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
-        if (d is FileListBox f) f.BindGrouping();
+        if (d is FileListBox f)
+        {
+            f.UpdateItemsSubscription();
+            f.ScheduleRebuild();
+        }
     }
 
-    private void BindGrouping()
+    private void UpdateItemsSubscription()
     {
-        _cvs = new CollectionViewSource { Source = Items };
-        _cvs.GroupDescriptions.Add(new PropertyGroupDescription(nameof(BaseFileItem.Category)));
-        FileListBoxControl.ItemsSource = _cvs.View;
+        _itemsHook?.Invoke();
+        _itemsHook = null;
+        if (Items is INotifyCollectionChanged incc)
+        {
+            incc.CollectionChanged += OnItemsCollectionChanged;
+            _itemsHook = () => incc.CollectionChanged -= OnItemsCollectionChanged;
+        }
     }
 
-    public void RefreshGrouping() => _cvs?.View?.Refresh();
+    private void OnItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) => ScheduleRebuild();
+
+    private void ScheduleRebuild()
+    {
+        if (_rebuildPending) return;
+        _rebuildPending = true;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+        {
+            _rebuildPending = false;
+            RebuildRows();
+        }));
+    }
+
+    public void SetShowCategories(bool value)
+    {
+        _showCategories = value;
+        _collapsed.Clear();
+        if (value)
+            foreach (var category in Items.Select(f => f.Category).Distinct(StringComparer.OrdinalIgnoreCase))
+                _collapsed.Add(category);
+        RebuildRows();
+    }
+
+    public bool ShowCategories => _showCategories;
+
+    public void ToggleToggle(string key)
+    {
+        if (!_collapsed.Add(key)) _collapsed.Remove(key);
+        RebuildRows();
+    }
+
+    private void RebuildRows()
+    {
+        if (_rebuildPending) _rebuildPending = false;
+        _rows.Clear();
+        if (Items.Count == 0) return;
+        foreach (var row in _showCategories ? BuildCategoryRows() : BuildFolderRows())
+            _rows.Add(row);
+    }
+
+    private static string RootOf(BaseFileItem f) =>
+        !string.IsNullOrWhiteSpace(f.SourceFolder)
+            ? f.SourceFolder.TrimEnd('\\')
+            : (Path.GetDirectoryName(f.FilePath) ?? f.FilePath);
+
+    private static string FolderDisplayName(string key) =>
+        string.IsNullOrEmpty(Path.GetFileName(key)) ? key : Path.GetFileName(key);
+
+    private IEnumerable<object> BuildFolderRows()
+    {
+        var roots = Items
+            .GroupBy(RootOf, PathComparer)
+            .OrderBy(g => g.Key, PathComparer);
+        foreach (var grp in roots)
+        {
+            var rootKey = grp.Key;
+            var rootRow = new TreeFolderNode
+            {
+                Key = rootKey,
+                DisplayName = FolderDisplayName(rootKey),
+                IsExpanded = !_collapsed.Contains(rootKey),
+                Depth = 0
+            };
+            BuildNested(rootRow, rootKey, grp.ToList());
+            if (rootRow.Folders.Count == 0 && rootRow.Files.Count == 0) continue;
+            rootRow.Count = CountFiles(rootRow);
+            foreach (var row in FlattenFolder(rootRow))
+                yield return row;
+        }
+    }
+
+    private void BuildNested(TreeFolderNode node, string rootKey, List<BaseFileItem> files)
+    {
+        foreach (var f in files)
+        {
+            var dir = Path.GetDirectoryName(f.FilePath) ?? rootKey;
+            var rel = Path.GetRelativePath(rootKey, dir);
+            var current = node;
+            var ownerKey = rootKey;
+            if (rel != "." && !string.IsNullOrEmpty(rel))
+            {
+                foreach (var seg in rel.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+                {
+                    if (string.IsNullOrEmpty(seg) || seg == ".") continue;
+                    var full = Path.Combine(ownerKey, seg);
+                    var child = current.Folders.FirstOrDefault(x => PathComparer.Equals(x.Key, full));
+                    if (child == null)
+                    {
+                        child = new TreeFolderNode
+                        {
+                            Key = full,
+                            DisplayName = seg,
+                            IsExpanded = !_collapsed.Contains(full),
+                            Depth = current.Depth + 1
+                        };
+                        current.Folders.Add(child);
+                    }
+                    current = child;
+                    ownerKey = full;
+                }
+            }
+            current.Files.Add(f);
+        }
+    }
+
+    private static int CountFiles(TreeFolderNode n) =>
+        n.Files.Count + n.Folders.Sum(CountFiles);
+
+    private IEnumerable<object> FlattenFolder(TreeFolderNode n)
+    {
+        yield return n;
+        if (!n.IsExpanded) yield break;
+        foreach (var sub in n.Folders.OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase))
+            foreach (var row in FlattenFolder(sub))
+                yield return row;
+        foreach (var file in n.Files.OrderBy(x => x.FileName, StringComparer.OrdinalIgnoreCase))
+        {
+            file.TreeDepth = n.Depth + 1;
+            yield return file;
+        }
+    }
+
+    private IEnumerable<object> BuildCategoryRows()
+    {
+        var groups = Items
+            .GroupBy(f => f.Category, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+        foreach (var grp in groups)
+        {
+            var row = new TreeFolderNode
+            {
+                Key = grp.Key,
+                DisplayName = grp.Key,
+                IsExpanded = !_collapsed.Contains(grp.Key),
+                IsCategory = true,
+                Depth = 0,
+                Count = grp.Count()
+            };
+            row.Files.AddRange(grp.OrderBy(f => f.FileName, StringComparer.OrdinalIgnoreCase));
+            yield return row;
+            if (row.IsExpanded)
+            {
+                foreach (var f in row.Files)
+                {
+                    f.TreeDepth = 1;
+                    yield return f;
+                }
+            }
+        }
+    }
+
+    private void OnToggleFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is TreeFolderNode node)
+            ToggleToggle(node.Key);
+    }
+
+    private void RemoveRow(object row)
+    {
+        if (row is BaseFileItem item) { Items.Remove(item); return; }
+        if (row is TreeFolderNode node)
+        {
+            var victims = node.Files.Concat(node.Folders.SelectMany(FlattenFiles)).ToList();
+            foreach (var v in victims)
+                Items.Remove(v);
+        }
+    }
+
+    private static IEnumerable<BaseFileItem> FlattenFiles(TreeFolderNode n) =>
+        n.Files.Concat(n.Folders.SelectMany(FlattenFiles));
 
     public void SetMetadataHeaders(IReadOnlyList<string> headers)
     {
@@ -136,25 +322,21 @@ public partial class FileListBox : UserControl
 
     private void OnRemoveClicked(object sender, RoutedEventArgs e)
     {
-        if (FileListBoxControl.SelectedItem is BaseFileItem item)
-        {
-            Items.Remove(item);
-        }
+        foreach (var selected in FileListBoxControl.SelectedItems.Cast<object>().ToList())
+            RemoveRow(selected);
     }
 
     private void OnRowRemoveClick(object sender, RoutedEventArgs e)
     {
-        if (sender is Button b && b.DataContext is BaseFileItem item)
-        {
-            Items.Remove(item);
-        }
+        if (sender is Button b)
+            RemoveRow(b.DataContext!);
     }
 
     private void OnListKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Delete) return;
-        foreach (var item in FileListBoxControl.SelectedItems.Cast<BaseFileItem>().ToList())
-            Items.Remove(item);
+        foreach (var selected in FileListBoxControl.SelectedItems.Cast<object>().ToList())
+            RemoveRow(selected);
     }
 
     private void OnClearAllClicked(object sender, RoutedEventArgs e)
@@ -176,4 +358,13 @@ public partial class FileListBox : UserControl
         RemoveItem.IsEnabled = FileListBoxControl.SelectedItem is not null;
         ClearAllItem.IsEnabled = Items.Count > 0;
     }
+}
+
+public sealed class FileRowSelector : DataTemplateSelector
+{
+    public DataTemplate? FileTemplate { get; set; }
+    public DataTemplate? FolderTemplate { get; set; }
+
+    public override DataTemplate? SelectTemplate(object item, DependencyObject container)
+        => item is TreeFolderNode ? FolderTemplate : FileTemplate;
 }

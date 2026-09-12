@@ -275,17 +275,38 @@ public partial class App : System.Windows.Application
         foreach (var path in paths)
         {
             if (FileFilters.IsSystemFile(Path.GetFileName(path))) continue;
-            if (!File.Exists(path)) continue; // guard: carpetas/inaccesibles
+
+            if (Directory.Exists(path))
+            {
+                foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories))
+                {
+                    if (FileFilters.IsSystemFile(Path.GetFileName(file))) continue;
+                    if (_masterFiles.Any(f => f.FilePath.Equals(file, StringComparison.OrdinalIgnoreCase))) continue;
+                    long size = 0;
+                    try { size = new FileInfo(file).Length; } catch { continue; }
+                    toAdd.Add(new BaseFileItem
+                    {
+                        FilePath = file,
+                        FileName = Path.GetFileName(file),
+                        FileSize = size,
+                        SourceFolder = path
+                    });
+                }
+                continue;
+            }
+
+            if (!File.Exists(path)) continue; // guard: inaccesibles
             if (_masterFiles.Any(f => f.FilePath.Equals(path, StringComparison.OrdinalIgnoreCase))) continue;
 
-            long size = 0;
-            try { size = new FileInfo(path).Length; } catch { continue; }
+            long s = 0;
+            try { s = new FileInfo(path).Length; } catch { continue; }
 
             toAdd.Add(new BaseFileItem
             {
                 FilePath = path,
                 FileName = Path.GetFileName(path),
-                FileSize = size
+                FileSize = s,
+                SourceFolder = Path.GetDirectoryName(path) ?? path
             });
         }
         if (toAdd.Count == 0) return;
@@ -410,10 +431,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        var added = Directory.GetFiles(dialog.FolderName, "*", SearchOption.AllDirectories)
-            .Where(f => !FileFilters.IsSystemFile(Path.GetFileName(f)))
-            .ToArray();
-        _ = AddFiles(added);
+        _ = AddFiles(new[] { dialog.FolderName });
     }
 
     // ── Clasificación ─────────────────────────────────────────────────
@@ -442,16 +460,25 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        if (_options!.MethodIa.IsChecked == true)
-            await ClassifyIa(files);
-        else
-            ClassifyLocal(GetFilePaths());
+        _window!.FileListBox.IsBusy = true;
+        try
+        {
+            if (_options!.MethodIa.IsChecked == true)
+                await ClassifyIa(files);
+            else
+                await ClassifyLocal(GetFilePaths());
+        }
+        finally
+        {
+            _window.FileListBox.IsBusy = false;
+        }
     }
 
-    private void ClassifyLocal(string[] paths)
+    private async Task ClassifyLocal(string[] paths)
     {
         var (_, criterion, depth) = GetOptions();
-        var results = LocalClassifier.Classify(paths, depth, Translations.Current, criterion);
+        var idioma = Translations.Current;
+        var results = await Task.Run(() => LocalClassifier.Classify(paths, depth, idioma, criterion));
         if (results.Count == 0)
         {
             MessageBox.Show(Translations.Get("NoValidCategories"), Translations.Get("Error"),
@@ -553,7 +580,7 @@ public partial class App : System.Windows.Application
         foreach (var item in _window!.Files)
             item.Category = fileToCategory.TryGetValue(item.FileName, out var cat) ? cat : "Sin categoría";
 
-        _window.FileListBox.RefreshGrouping();
+        _window.FileListBox.SetShowCategories(true);
         _window.MainControl.UpdateCounters();
     }
 
@@ -563,7 +590,7 @@ public partial class App : System.Windows.Application
         if (_window == null) return;
         foreach (var item in _window.Files)
             item.Category = "Archivos";
-        _window.FileListBox.RefreshGrouping();
+        _window.FileListBox.SetShowCategories(false);
     }
 
     // ── Organizar ─────────────────────────────────────────────────────

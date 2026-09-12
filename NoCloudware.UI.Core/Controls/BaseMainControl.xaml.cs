@@ -601,7 +601,8 @@ public partial class BaseMainControl : UserControl
             {
                 FilePath = path,
                 FileName = System.IO.Path.GetFileName(path),
-                FileSize = new System.IO.FileInfo(path).Length
+                FileSize = new System.IO.FileInfo(path).Length,
+                SourceFolder = System.IO.Path.GetDirectoryName(path) ?? path
             });
         }
         UpdateCounters();

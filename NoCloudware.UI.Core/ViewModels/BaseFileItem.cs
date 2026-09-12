@@ -1,3 +1,4 @@
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace NoCloudware.UI.Core.ViewModels;
@@ -41,4 +42,12 @@ public partial class BaseFileItem : ObservableObject
 
     [ObservableProperty]
     private string _category = "Archivos";
+
+    [ObservableProperty]
+    private string _sourceFolder = string.Empty;
+
+    [ObservableProperty]
+    private int _treeDepth;
+
+    public Thickness TreeIndent => new(Math.Max(0, TreeDepth) * 14 + 8, 3, 0, 3);
 }
