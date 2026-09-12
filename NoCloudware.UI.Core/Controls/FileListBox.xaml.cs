@@ -26,6 +26,10 @@ public partial class FileListBox : UserControl
         DependencyProperty.Register(nameof(ClearAllMenuItemText), typeof(string), typeof(FileListBox),
             new PropertyMetadata("Clear All", OnMenuItemTextChanged));
 
+    public static readonly DependencyProperty IsBusyProperty =
+        DependencyProperty.Register(nameof(IsBusy), typeof(bool), typeof(FileListBox),
+            new PropertyMetadata(false, OnIsBusyChanged));
+
     public static readonly RoutedEvent FilesDroppedEvent =
         EventManager.RegisterRoutedEvent(
             nameof(FilesDropped),
@@ -33,7 +37,7 @@ public partial class FileListBox : UserControl
             typeof(DropZone.FilesDroppedEventHandler),
             typeof(FileListBox));
 
-    private const double StatusColumnWidth = 100;
+    private const double ScrollbarReserve = 18;
     private const double RemoveColumnWidth = 44;
 
     public ObservableCollection<BaseFileItem> Items
@@ -44,6 +48,7 @@ public partial class FileListBox : UserControl
 
     public string RemoveMenuItemText { get => (string)GetValue(RemoveMenuItemTextProperty); set => SetValue(RemoveMenuItemTextProperty, value); }
     public string ClearAllMenuItemText { get => (string)GetValue(ClearAllMenuItemTextProperty); set => SetValue(ClearAllMenuItemTextProperty, value); }
+    public bool IsBusy { get => (bool)GetValue(IsBusyProperty); set => SetValue(IsBusyProperty, value); }
 
     public event DropZone.FilesDroppedEventHandler FilesDropped
     {
@@ -94,13 +99,22 @@ public partial class FileListBox : UserControl
 
     private void ComputeColumns()
     {
-        double usable = Math.Max(0, ActualWidth - StatusColumnWidth - RemoveColumnWidth);
-        double metaWidth = _headers[0].Text.Length > 0 ? usable / 12.0 : 0;
+        double usable = Math.Max(0, ActualWidth - RemoveColumnWidth - ScrollbarReserve);
+        double metaWidth = _headers[0].Text.Length > 0 ? usable / 8.0 : 0;
         NameCol.Width = Math.Max(0, usable - 4 * metaWidth);
         foreach (var column in _metaColumns)
             column.Width = metaWidth;
-        StatusCol.Width = StatusColumnWidth;
         RemoveCol.Width = RemoveColumnWidth;
+    }
+
+    private static void OnIsBusyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is FileListBox f && f.BusyOverlay is not null)
+        {
+            bool busy = (bool)e.NewValue;
+            f.BusyOverlay.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+            f.BusyOverlay.IsHitTestVisible = busy;
+        }
     }
 
     private void OnDragEnter(object sender, DragEventArgs e)

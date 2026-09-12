@@ -185,7 +185,7 @@ public partial class App : System.Windows.Application
         _window.FilesDropped += (_, args) =>
         {
             if (args is FilesDroppedEventArgs f)
-                AddFiles(f.FilePaths);
+                _ = AddFiles(f.FilePaths);
         };
         _window.MainControl.OutputFolderChanged += (_, _) => SavePreferences();
 
@@ -261,7 +261,7 @@ public partial class App : System.Windows.Application
 
     // ── Archivos ──────────────────────────────────────────────────────
 
-    private void AddFiles(IEnumerable<string> paths)
+    private async Task AddFiles(IEnumerable<string> paths)
     {
         var nowFiles = _window!.Files;
         foreach (var item in nowFiles)
@@ -271,6 +271,7 @@ public partial class App : System.Windows.Application
         var idioma = Translations.Current;
         var (mode, _, _) = GetOptions();
 
+        var toAdd = new List<BaseFileItem>();
         foreach (var path in paths)
         {
             if (FileFilters.IsSystemFile(Path.GetFileName(path))) continue;
@@ -280,18 +281,59 @@ public partial class App : System.Windows.Application
             long size = 0;
             try { size = new FileInfo(path).Length; } catch { continue; }
 
-            var item = new BaseFileItem
+            toAdd.Add(new BaseFileItem
             {
                 FilePath = path,
                 FileName = Path.GetFileName(path),
                 FileSize = size
-            };
-            item.AllMetadata = MetadataClassifier.GetAllMetadata(path, idioma);
-            item.MetadataCells = MapCells(item.AllMetadata, mode);
-            _masterFiles.Add(item);
+            });
         }
-        ApplyDedupFilter();
-        RefreshMetadata();
+        if (toAdd.Count == 0) return;
+
+        if (_loadingFiles)
+        {
+            QueueFiles(paths);
+            return;
+        }
+        _loadingFiles = true;
+        _window.FileListBox.IsBusy = true;
+        try
+        {
+            await Task.Run(() =>
+            {
+                foreach (var item in toAdd)
+                    item.AllMetadata = MetadataClassifier.GetAllMetadata(item.FilePath, idioma);
+                return toAdd;
+            });
+            foreach (var item in toAdd)
+            {
+                item.MetadataCells = MapCells(item.AllMetadata, mode);
+                _masterFiles.Add(item);
+            }
+            ApplyDedupFilter();
+            RefreshMetadata();
+        }
+        finally
+        {
+            _loadingFiles = false;
+            _window.FileListBox.IsBusy = false;
+            if (_queuedPaths.Count > 0)
+            {
+                var next = _queuedPaths.ToArray();
+                _queuedPaths.Clear();
+                _ = AddFiles(next);
+            }
+        }
+    }
+
+    private bool _loadingFiles;
+    private readonly List<string> _queuedPaths = new();
+
+    private void QueueFiles(IEnumerable<string> paths)
+    {
+        foreach (var path in paths)
+            if (!_queuedPaths.Contains(path))
+                _queuedPaths.Add(path);
     }
 
     private static string[] MapCells(Dictionary<string, string?> all, ClassificationMode mode)
@@ -371,7 +413,7 @@ public partial class App : System.Windows.Application
         var added = Directory.GetFiles(dialog.FolderName, "*", SearchOption.AllDirectories)
             .Where(f => !FileFilters.IsSystemFile(Path.GetFileName(f)))
             .ToArray();
-        AddFiles(added);
+        _ = AddFiles(added);
     }
 
     // ── Clasificación ─────────────────────────────────────────────────
