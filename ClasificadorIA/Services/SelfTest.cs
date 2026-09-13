@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,22 +16,29 @@ public static class SelfTest
     public static bool Run()
     {
         Failures.Clear();
-        RunPromptGenerator();
-        RunResponseParser();
-        RunLocalClassifier();
-        RunMetadataClassifier();
-        RunBatchClassifier();
-        RunFileOrganizer();
-        RunFileFilters();
-        RunTranslations();
-        RunClassificationModes();
-        RunByokConfigStore();
-        RunByokDialogLabels();
-        RunAiClientOffline();
-        RunDedupFilter();
-        RunFileListCustomContent();
-        RunFileListTree();
-        RunEndToEnd();
+        try
+        {
+            RunPromptGenerator();
+            RunResponseParser();
+            RunLocalClassifier();
+            RunMetadataClassifier();
+            RunBatchClassifier();
+            RunFileOrganizer();
+            RunFileFilters();
+            RunTranslations();
+            RunClassificationModes();
+            RunByokConfigStore();
+            RunByokDialogLabels();
+            RunAiClientOffline();
+            RunDedupFilter();
+            RunFileListCustomContent();
+            RunFileListTree();
+            RunEndToEnd();
+        }
+        catch (Exception ex)
+        {
+            Failures.Add("EXCEPCIÓN no controlada: " + ex);
+        }
 
         if (Failures.Count == 0)
         {
@@ -765,20 +772,39 @@ public static class SelfTest
         box.Items.Add(b);
         box.Items.Add(c);
 
+        // Carpeta: colapsadas por defecto
         box.SetShowCategories(false);
         var rows = box.Rows.ToList();
-        int folders = rows.OfType<TreeFolderNode>().Count();
-        int files = rows.OfType<BaseFileItem>().Count();
-        Assert("Tree carpetas: 2 raíces + 1 subcarpeta", folders == 3, $"folders={folders}");
-        Assert("Tree carpeta: 3 archivos desplegados", files == 3, $"files={files}");
-        Assert("Tree: subcarpeta indentada",
-            rows.OfType<TreeFolderNode>().First(n => n.DisplayName == "rock").Depth == 1);
+        int folderRows = rows.OfType<TreeFolderNode>().Count();
+        int fileRows = rows.OfType<BaseFileItem>().Count();
+        Assert("Tree carpetas: colapsadas al cargar (2 raíces)", folderRows == 2, $"folders={folderRows}");
+        Assert("Tree carpeta: archivos ocultos al colapsar", fileRows == 0, $"files={fileRows}");
 
+        // Expandir raíz muestra su archivo + subcarpeta (colapsada)
+        var raiz = rows.OfType<TreeFolderNode>().First(n => n.DisplayName == "musica");
+        box.ToggleToggle(raiz.Key);
+        rows = box.Rows.ToList();
+        Assert("Tree: expandir raíz muestra su archivo y subcarpeta", rows.OfType<BaseFileItem>().Count() == 1, $"files={rows.OfType<BaseFileItem>().Count()}");
         var rock = rows.OfType<TreeFolderNode>().First(n => n.DisplayName == "rock");
+        Assert("Tree: subcarpeta indentada", rock.Depth == 1);
+
+        // Expandir subcarpeta muestra b.mp3
         box.ToggleToggle(rock.Key);
         rows = box.Rows.ToList();
-        Assert("Tree: colapsar carpeta oculta archivos", rows.OfType<BaseFileItem>().Count() == 2);
+        Assert("Tree: expandir subcarpeta muestra su archivo", rows.OfType<BaseFileItem>().Count() == 2, $"files={rows.OfType<BaseFileItem>().Count()}");
 
+        // Colapsar subcarpeta la oculta; colapsar raíz oculta todo
+        box.ToggleToggle(rock.Key);
+        rows = box.Rows.ToList();
+        Assert("Tree: colapsar subcarpeta oculta su archivo", rows.OfType<BaseFileItem>().Count() == 1, $"files={rows.OfType<BaseFileItem>().Count()}");
+        box.ToggleToggle(raiz.Key);
+        rows = box.Rows.ToList();
+        Assert("Tree: colapsar raíz oculta archivos", rows.OfType<BaseFileItem>().Count() == 0);
+        box.ToggleToggle(raiz.Key);
+        rows = box.Rows.ToList();
+        Assert("Tree: expandir raíz de nuevo muestra archivos", rows.OfType<BaseFileItem>().Count() == 1, $"files={rows.OfType<BaseFileItem>().Count()}");
+
+        // Categorías: colapsadas por defecto
         box.SetShowCategories(true);
         rows = box.Rows.ToList();
         Assert("Tree categorías: una fila por categoría, colapsadas", rows.OfType<TreeFolderNode>().Count() == 2, $"{rows.Count}");

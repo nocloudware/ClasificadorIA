@@ -60,8 +60,9 @@ public partial class FileListBox : UserControl
 
     private readonly TextBlock[] _headers = new TextBlock[4];
     private readonly GridViewColumn[] _metaColumns = new GridViewColumn[4];
-    private readonly ObservableCollection<object> _rows = new();
-    private readonly HashSet<string> _collapsed = new(StringComparer.OrdinalIgnoreCase);
+private readonly ObservableCollection<object> _rows = new();
+    private readonly HashSet<string> _collapsed = new(PathComparer);
+    private readonly HashSet<string> _seeded = new(PathComparer);
     private bool _showCategories;
     private Action? _itemsHook;
     private bool _rebuildPending;
@@ -136,6 +137,11 @@ public partial class FileListBox : UserControl
         RebuildRows();
     }
 
+    private void SeedCollapsed(string key)
+    {
+        if (_seeded.Add(key)) _collapsed.Add(key);
+    }
+
     private void RebuildRows()
     {
         if (_rebuildPending) _rebuildPending = false;
@@ -161,6 +167,7 @@ public partial class FileListBox : UserControl
         foreach (var grp in roots)
         {
             var rootKey = grp.Key;
+            SeedCollapsed(rootKey);
             var rootRow = new TreeFolderNode
             {
                 Key = rootKey,
@@ -193,6 +200,7 @@ public partial class FileListBox : UserControl
                     var child = current.Folders.FirstOrDefault(x => PathComparer.Equals(x.Key, full));
                     if (child == null)
                     {
+                        SeedCollapsed(full);
                         child = new TreeFolderNode
                         {
                             Key = full,
