@@ -17,7 +17,7 @@
 - 🔢 **Niveles de profundidad** ajustables: 5, 10 o 15 categorías aproximadas.
 - ✍️ **Método Manual** — la app genera un prompt optimizado (criterio + lista de archivos), lo copias a tu IA favorita y pegas (o cargas) la respuesta JSON.
 - 🤖 **Método Auto (BYOK)** — bring-your-own-key: configuras tu proveedor y API key una vez, y la app clasifica directamente sin salir de ella. Sin cuentas de terceros, 0 NuGet.
-- 👁️ **Árbol de categorías** — tras clasificar, muestra cada categoría con sus archivos.
+- 👁️ **Árbol tipo Explorador** — tras clasificar, muestra carpetas y categorías como árbol **plegado por defecto** (igual que Windows al abrir una carpeta): raíces y categorías visibles, archivos y subcarpetas ocultos hasta que expandes. Clic en una carpeta la expande/colapsa.
 - ⚙️ **Procesamiento final** — copiar o mover los archivos a las subcarpetas creadas, con progreso en vivo y cancelación.
 - 🛡️ **Manejo robusto** — normalización de nombres y filtrado de archivos de sistema (`.exe`, `.dll`, etc.).
 
@@ -55,7 +55,7 @@ dotnet run --project ClasificadorIA
 
 ### Paso 1 — Carga los archivos
 
-Arrastra y suelta archivos, usa **"Seleccionar archivos"**, o elige una **carpeta de origen** completa desde el panel derecho.
+Arrastra y suelta archivos, usa **"Seleccionar archivos"**, o elige una **carpeta de origen** completa desde el panel derecho. Los metadatos se extraen en segundo plano (spinner de carga centrado).
 
 ### Paso 2 — Configura la clasificación
 
