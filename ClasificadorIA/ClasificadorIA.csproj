@@ -7,8 +7,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyTitle>ClasificadorIA</AssemblyTitle>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <Version>1.1.0</Version>
     <Description>Organizador de archivos por categorías con IA</Description>
     <ApplicationIcon>Assets\clasificadoria.ico</ApplicationIcon>
   </PropertyGroup>
