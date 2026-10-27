@@ -41,12 +41,15 @@ public partial class OptionsPanel : UserControl
 
     public bool IsIaMethod => MethodIa.IsChecked == true;
 
+    public bool ShuffleBatches => ShuffleBatchesCheck.IsChecked == true;
+
     private void ApplyMethodState()
     {
         bool ia = IsIaMethod;
         ModeCombo.IsEnabled = true;
         CriterionCombo.IsEnabled = true;
         BatchSizeCombo.IsEnabled = ia;
+        ShuffleBatchesCheck.IsEnabled = ia;
         ByokButton.Visibility = ia ? Visibility.Visible : Visibility.Collapsed;
         PanelHintText.Text = ia ? Translations.Get("AutoByokHint") : "";
         LocalDisclaimerText.Visibility = ia ? Visibility.Collapsed : Visibility.Visible;
@@ -75,6 +78,7 @@ public partial class OptionsPanel : UserControl
         CriterionLabel.Text = Translations.Get("Criterion");
         DepthLabel.Text = Translations.Get("Depth");
         BatchSizeLabel.Text = Translations.Get("BatchSize");
+        ShuffleBatchesCheck.Content = Translations.Get("RandomizeBatches");
         OutputModeLabel.Text = Translations.Get("OutputMode");
         CopyRadio.Content = Translations.Get("CopyFiles");
         MoveRadio.Content = Translations.Get("MoveFiles");

@@ -39,7 +39,7 @@ public static class Translations
             ["Criterion"] = "Criterio", ["Depth"] = "Profundidad", ["Categorias5"] = "5 categorías",
             ["Categorias10"] = "10 categorías", ["Categorias15"] = "15 categorías", ["Method"] = "Método",
             ["MethodLocal"] = "Local", ["MethodIA"] = "IA", ["BatchSize"] = "Tamaño de lote",
-            ["BatchAll"] = "Todos (un solo lote)", ["BatchStatus"] = "Clasificando lote {0}/{1}…",
+            ["BatchAll"] = "Todos (un solo lote)", ["RandomizeBatches"] = "Randomizar lotes", ["BatchStatus"] = "Clasificando lote {0}/{1}…",
             ["BatchTimer"] = "Lote {0}/{1} · {2}", ["BatchRetryStatus"] = "Lote {0}/{1}: cuota agotada, reintento {2} en {3}s…",
             ["Otros"] = "Otros", ["CatSoundtrack"] = "Banda sonora", ["Decade"] = "Década {0}",
             // Classify
@@ -121,7 +121,7 @@ public static class Translations
             ["Criterion"] = "Criterion", ["Depth"] = "Depth", ["Categorias5"] = "5 categories",
             ["Categorias10"] = "10 categories", ["Categorias15"] = "15 categories", ["Method"] = "Method",
             ["MethodLocal"] = "Local", ["MethodIA"] = "AI", ["BatchSize"] = "Batch size",
-            ["BatchAll"] = "All (single batch)", ["BatchStatus"] = "Classifying batch {0}/{1}…",
+            ["BatchAll"] = "All (single batch)", ["RandomizeBatches"] = "Randomize batches", ["BatchStatus"] = "Classifying batch {0}/{1}…",
             ["BatchTimer"] = "Batch {0}/{1} · {2}", ["BatchRetryStatus"] = "Batch {0}/{1}: rate-limited, retry {2} in {3}s…",
             ["Otros"] = "Others", ["CatSoundtrack"] = "Soundtrack", ["Decade"] = "{0}s",
             // Classify
@@ -202,7 +202,7 @@ public static class Translations
             ["Criterion"] = "Critère", ["Depth"] = "Profondeur", ["Categorias5"] = "5 catégories",
             ["Categorias10"] = "10 catégories", ["Categorias15"] = "15 catégories", ["Method"] = "Méthode",
             ["MethodLocal"] = "Local", ["MethodIA"] = "IA", ["BatchSize"] = "Taille du lot",
-            ["BatchAll"] = "Tout (un seul lot)", ["BatchStatus"] = "Classification du lot {0}/{1}…",
+            ["BatchAll"] = "Tout (un seul lot)", ["RandomizeBatches"] = "Randomiser les lots", ["BatchStatus"] = "Classification du lot {0}/{1}…",
             ["BatchTimer"] = "Lot {0}/{1} · {2}", ["BatchRetryStatus"] = "Lot {0}/{1} : limite atteinte, nouvel essai {2} dans {3}s…",
             ["Otros"] = "Autres", ["CatSoundtrack"] = "Bande originale", ["Decade"] = "Années {0}",
             // Classify
@@ -283,7 +283,7 @@ public static class Translations
             ["Criterion"] = "Kriterium", ["Depth"] = "Tiefe", ["Categorias5"] = "5 Kategorien",
             ["Categorias10"] = "10 Kategorien", ["Categorias15"] = "15 Kategorien", ["Method"] = "Methode",
             ["MethodLocal"] = "Lokal", ["MethodIA"] = "KI", ["BatchSize"] = "Stapelgröße",
-            ["BatchAll"] = "Alle (ein Stapel)", ["BatchStatus"] = "Stapel {0}/{1} wird klassifiziert…",
+            ["BatchAll"] = "Alle (ein Stapel)", ["RandomizeBatches"] = "Stapel zufällig mischen", ["BatchStatus"] = "Stapel {0}/{1} wird klassifiziert…",
             ["BatchTimer"] = "Stapel {0}/{1} · {2}", ["BatchRetryStatus"] = "Stapel {0}/{1}: Limit erreicht, Versuch {2} in {3}s…",
             ["Otros"] = "Andere", ["CatSoundtrack"] = "Soundtrack", ["Decade"] = "{0}er",
             // Classify
@@ -364,7 +364,7 @@ public static class Translations
             ["Criterion"] = "Critério", ["Depth"] = "Profundidade", ["Categorias5"] = "5 categorias",
             ["Categorias10"] = "10 categorias", ["Categorias15"] = "15 categorias", ["Method"] = "Método",
             ["MethodLocal"] = "Local", ["MethodIA"] = "IA", ["BatchSize"] = "Tamanho do lote",
-            ["BatchAll"] = "Tudo (um único lote)", ["BatchStatus"] = "Classificando lote {0}/{1}…",
+            ["BatchAll"] = "Tudo (um único lote)", ["RandomizeBatches"] = "Embaralhar lotes", ["BatchStatus"] = "Classificando lote {0}/{1}…",
             ["BatchTimer"] = "Lote {0}/{1} · {2}", ["BatchRetryStatus"] = "Lote {0}/{1}: limite atingido, tentativa {2} em {3}s…",
             ["Otros"] = "Outros", ["CatSoundtrack"] = "Trilha sonora", ["Decade"] = "Década de {0}",
             // Classify
@@ -445,7 +445,7 @@ public static class Translations
             ["Criterion"] = "Criterio", ["Depth"] = "Profondità", ["Categorias5"] = "5 categorie",
             ["Categorias10"] = "10 categorie", ["Categorias15"] = "15 categorie", ["Method"] = "Metodo",
             ["MethodLocal"] = "Locale", ["MethodIA"] = "IA", ["BatchSize"] = "Dimensione lotto",
-            ["BatchAll"] = "Tutto (un unico lotto)", ["BatchStatus"] = "Classificazione lotto {0}/{1}…",
+            ["BatchAll"] = "Tutto (un unico lotto)", ["RandomizeBatches"] = "Mescola i lotti", ["BatchStatus"] = "Classificazione lotto {0}/{1}…",
             ["BatchTimer"] = "Lotto {0}/{1} · {2}", ["BatchRetryStatus"] = "Lotto {0}/{1}: limite raggiunto, tentativo {2} tra {3}s…",
             ["Otros"] = "Altri", ["CatSoundtrack"] = "Colonna sonora", ["Decade"] = "Anni {0}",
             // Classify
@@ -526,7 +526,7 @@ public static class Translations
             ["Criterion"] = "基準", ["Depth"] = "階層", ["Categorias5"] = "5カテゴリ",
             ["Categorias10"] = "10カテゴリ", ["Categorias15"] = "15カテゴリ", ["Method"] = "方法",
             ["MethodLocal"] = "ローカル", ["MethodIA"] = "AI", ["BatchSize"] = "バッチサイズ",
-            ["BatchAll"] = "すべて（1バッチ）", ["BatchStatus"] = "バッチ{0}/{1}を分類中…",
+            ["BatchAll"] = "すべて（1バッチ）", ["RandomizeBatches"] = "バッチをシャッフル", ["BatchStatus"] = "バッチ{0}/{1}を分類中…",
             ["BatchTimer"] = "バッチ{0}/{1} · {2}", ["BatchRetryStatus"] = "バッチ{0}/{1}: 制限到達、{3}秒後に再試行 {2}…",
             ["Otros"] = "その他", ["CatSoundtrack"] = "サウンドトラック", ["Decade"] = "{0}年代",
             // Classify
@@ -607,7 +607,7 @@ public static class Translations
             ["Criterion"] = "标准", ["Depth"] = "深度", ["Categorias5"] = "5 个分类",
             ["Categorias10"] = "10 个分类", ["Categorias15"] = "15 个分类", ["Method"] = "方法",
             ["MethodLocal"] = "本地", ["MethodIA"] = "AI", ["BatchSize"] = "批次大小",
-            ["BatchAll"] = "全部（单批次）", ["BatchStatus"] = "正在分类批次 {0}/{1}…",
+            ["BatchAll"] = "全部（单批次）", ["RandomizeBatches"] = "随机分批", ["BatchStatus"] = "正在分类批次 {0}/{1}…",
             ["BatchTimer"] = "批次 {0}/{1} · {2}", ["BatchRetryStatus"] = "批次 {0}/{1}：已达限制，{3} 秒后重试 {2}…",
             ["Otros"] = "其他", ["CatSoundtrack"] = "原声带", ["Decade"] = "{0}年代",
             // Classify

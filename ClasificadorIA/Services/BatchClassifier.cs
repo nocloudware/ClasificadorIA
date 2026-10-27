@@ -23,6 +23,9 @@ public sealed class BatchClassifier
         _maxOutputLimit = maxOutputLimit;
     }
 
+    public static IReadOnlyList<string> Shuffle(IReadOnlyList<string> files) =>
+        files.OrderBy(_ => Random.Shared.Next()).ToList();
+
     public async Task<List<ClassificationResult>> ClassifyAsync(
         ClassificationMode mode, string criterion, Idioma idioma,
         IReadOnlyList<string> files, Action<string>? onStatus = null,

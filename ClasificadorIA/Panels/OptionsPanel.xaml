@@ -114,6 +114,9 @@
                 <ComboBox x:Name="BatchSizeCombo"
                           Style="{DynamicResource ThemedComboBoxStyle}"
                           Margin="0,4,0,6"/>
+                <CheckBox x:Name="ShuffleBatchesCheck"
+                          Style="{DynamicResource AetherCheckBoxStyle}"
+                          Margin="0,0,0,6"/>
 
                 <!-- 5. Copiar / Mover -->
                 <TextBlock x:Name="OutputModeLabel"

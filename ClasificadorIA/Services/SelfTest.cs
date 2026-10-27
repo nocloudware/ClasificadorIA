@@ -456,6 +456,14 @@ public static class SelfTest
             batchSize: 2, depth: 10);
         var rawResult = falloConsolidacion.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3" }).GetAwaiter().GetResult();
         Assert("Batch: consolidación fallida conserva crudas", rawResult.Any(r => r.Category == "rock" && r.Files.Count == 1), string.Join(",", rawResult.Select(r => $"{r.Category}({r.Files.Count})")));
+
+        // Randomizar lotes: misma lista completa, en otro orden.
+        var ordered = Enumerable.Range(1, 200).Select(i => $"{i}.mp3").ToList();
+        var shuffled = BatchClassifier.Shuffle(ordered);
+        Assert("Batch: randomizar conserva todos los archivos",
+            shuffled.Count == ordered.Count &&
+            shuffled.Distinct(StringComparer.OrdinalIgnoreCase).Count() == ordered.Count &&
+            !shuffled.SequenceEqual(ordered));
     }
 
     // ── Organizador ────────────────────────────────────────────────────
@@ -555,6 +563,7 @@ public static class SelfTest
             Assert($"Tr {lang} Modo label", Translations.ModeLabel("Música", lang) == modo);
             Assert($"Tr {lang} ActionButton", Translations.Get("ActionButton", lang) != "Organize");
             Assert($"Tr {lang} UpdateAvailable", Translations.Get("UpdateAvailable", lang).Contains("{0}"));
+            Assert($"Tr {lang} RandomizeBatches", Translations.Get("RandomizeBatches", lang) != "Randomize batches");
             Assert($"Tr {lang} criterio", ClassificationModes.TranslateCriterion("Género", lang) == (lang == Idioma.Portugués ? "Gênero" : lang switch
             {
                 Idioma.Francés => "Genre",

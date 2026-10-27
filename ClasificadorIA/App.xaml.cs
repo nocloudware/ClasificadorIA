@@ -499,6 +499,7 @@ public partial class App : System.Windows.Application
 
         var (mode, criterion, depth) = GetOptions();
         int batchSize = _options!.BatchSize;
+        if (_options.ShuffleBatches) files = BatchClassifier.Shuffle(files).ToArray();
 
         _options!.ClassifyBtn.IsEnabled = false;
         var cts = new CancellationTokenSource();
