@@ -1,5 +1,6 @@
 using System.Collections.Specialized;
 using System.IO;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Windows;
@@ -65,6 +66,7 @@ public partial class App : System.Windows.Application
         WireEvents();
         ApplyLanguage();
         _window!.Show();
+        _ = CheckForAppUpdateAsync();
     }
 
     // ── Preferencias ──────────────────────────────────────────────────
@@ -754,16 +756,103 @@ public partial class App : System.Windows.Application
         {
             var button = about.FindName("CheckUpdatesButton") as System.Windows.Controls.Button;
             if (button != null) button.IsEnabled = false;
-            var check = await new UpdateService("nocloudware", "ClasificadorIA").CheckForUpdatesAsync(appVersion);
-            if (check != null && check.IsNewerVersion)
-                MessageBox.Show(string.Format(Translations.Get("UpdateAvailable", ci), check.Version, check.DownloadUrl),
-                    Translations.Get("AboutTitle", ci), MessageBoxButton.OK, MessageBoxImage.Information);
-            else
-                MessageBox.Show(Translations.Get("AppUpToDate"), Translations.Get("AboutTitle", ci),
-                    MessageBoxButton.OK, MessageBoxImage.Information);
-            if (button != null) button.IsEnabled = true;
+            about.CheckUpdatesText = Translations.Get("CheckingUpdates", ci);
+            try
+            {
+                var check = await new UpdateService("nocloudware", "ClasificadorIA").CheckForUpdatesAsync(appVersion);
+                if (check == null)
+                {
+                    about.CheckUpdatesText = Translations.Get("UpdateCheckFailed", ci);
+                    MessageBox.Show(Translations.Get("UpdateCheckFailed", ci), Translations.Get("AboutTitle", ci),
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                else if (check.IsNewerVersion)
+                {
+                    string msg = string.Format(Translations.Get("UpdateAvailable", ci), check.Version);
+                    about.CheckUpdatesText = msg;
+                    if (MessageBox.Show(msg + "\n\n" + Translations.Get("DownloadPrompt", ci), Translations.Get("AboutTitle", ci),
+                            MessageBoxButton.YesNo, MessageBoxImage.Information) == MessageBoxResult.Yes)
+                    {
+                        if (!string.IsNullOrEmpty(check.DownloadAssetUrl))
+                        {
+                            about.CheckUpdatesText = Translations.Get("DownloadingUpdate", ci);
+                            await DownloadAndRunInstallerAsync(check.DownloadAssetUrl);
+                        }
+                        else if (!string.IsNullOrEmpty(check.DownloadUrl))
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = check.DownloadUrl,
+                                UseShellExecute = true
+                            });
+                        }
+                    }
+                }
+                else
+                {
+                    about.CheckUpdatesText = Translations.Get("AppUpToDate", ci);
+                    MessageBox.Show(Translations.Get("AppUpToDate", ci), Translations.Get("AboutTitle", ci),
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            finally
+            {
+                if (button != null) button.IsEnabled = true;
+            }
         };
         about.ShowDialog();
+    }
+
+    // Comprueba actualizaciones al arrancar y ofrece descargar e instalar el Setup (mismo esquema que TubeMassDL).
+    private async Task CheckForAppUpdateAsync()
+    {
+        try
+        {
+            var ci = Translations.Current;
+            var assemblyVer = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version;
+            string currentVersion = assemblyVer != null
+                ? $"{assemblyVer.Major}.{assemblyVer.Minor}.{assemblyVer.Build}"
+                : "0.0.0";
+
+            var info = await new UpdateService("nocloudware", "ClasificadorIA").CheckForUpdatesAsync(currentVersion);
+            if (info == null || !info.IsNewerVersion) return;
+
+            await _window!.Dispatcher.InvokeAsync(() =>
+            {
+                string msg = string.Format(Translations.Get("UpdateAvailable", ci), info.Version)
+                    + "\n\n" + Translations.Get("DownloadPrompt", ci);
+                var result = MessageBox.Show(msg, Translations.Get("AboutTitle", ci),
+                    MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (result == MessageBoxResult.Yes && !string.IsNullOrEmpty(info.DownloadAssetUrl))
+                    _ = DownloadAndRunInstallerAsync(info.DownloadAssetUrl);
+            });
+        }
+        catch { }
+    }
+
+    private static async Task DownloadAndRunInstallerAsync(string url)
+    {
+        string dest = Path.Combine(Path.GetTempPath(), "ClasificadorIA-Setup.exe");
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(5) };
+            using (var resp = await http.GetAsync(url))
+            {
+                resp.EnsureSuccessStatusCode();
+                using var fs = File.Create(dest);
+                await resp.Content.CopyToAsync(fs);
+            }
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = dest, UseShellExecute = true });
+            Application.Current.Shutdown();
+        }
+        catch
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = url, UseShellExecute = true });
+            }
+            catch { }
+        }
     }
 
     private static string? GetAssemblyVersion(string assemblyName)

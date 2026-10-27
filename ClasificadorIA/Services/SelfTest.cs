@@ -564,6 +564,7 @@ public static class SelfTest
             Assert($"Tr {lang} ActionButton", Translations.Get("ActionButton", lang) != "Organize");
             Assert($"Tr {lang} UpdateAvailable", Translations.Get("UpdateAvailable", lang).Contains("{0}"));
             Assert($"Tr {lang} RandomizeBatches", Translations.Get("RandomizeBatches", lang) != "Randomize batches");
+            Assert($"Tr {lang} DownloadPrompt", Translations.Get("DownloadPrompt", lang) != "Do you want to download and install the update now?");
             Assert($"Tr {lang} criterio", ClassificationModes.TranslateCriterion("Género", lang) == (lang == Idioma.Portugués ? "Gênero" : lang switch
             {
                 Idioma.Francés => "Genre",
