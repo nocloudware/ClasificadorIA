@@ -231,6 +231,115 @@ Rispondi SOLO con un JSON in cui ogni chiave è una categoria finale e il suo va
         ["zh"] = ("个文件", "例"),
     };
 
+    // Lote especial: archivos que quedaron en "Otros", forzados a una categoría ya definida.
+    private static readonly Dictionary<string, string> ReassignTemplate = new()
+    {
+        ["es"] = @"Estos archivos no encajaron en el análisis anterior. Asigna CADA uno a la categoría más adecuada de esta lista (son las únicas permitidas):
+{0}
+
+No crees categorías nuevas y no los dejes en ""Otros"": elige siempre la categoría más cercana.
+Archivos:
+{1}
+
+Responde SOLO con JSON válido, sin texto adicional:
+{{
+  ""archivos"": [
+    {{ ""archivo"": ""nombre"", ""categoria"": ""Categoria"" }}
+  ]
+}}",
+        ["en"] = @"These files did not fit the previous analysis. Assign EACH one to the most suitable category from this list (these are the only allowed ones):
+{0}
+
+Do not create new categories and do not leave them in ""Others"": always pick the closest category.
+Files:
+{1}
+
+Reply with ONLY valid JSON, no extra text:
+{{
+  ""files"": [
+    {{ ""file"": ""name"", ""category"": ""Category"" }}
+  ]
+}}",
+        ["fr"] = @"Ces fichiers ne correspondaient pas à l'analyse précédente. Attribuez à CHACUN la catégorie la plus appropriée de cette liste (ce sont les seules autorisées) :
+{0}
+
+Ne créez pas de nouvelles catégories et ne les laissez pas dans « Autres » : choisissez toujours la plus proche.
+Fichiers :
+{1}
+
+Répondez UNIQUEMENT avec un JSON valide, sans texte supplémentaire :
+{{
+  ""fichiers"": [
+    {{ ""fichier"": ""nom"", ""categorie"": ""Categorie"" }}
+  ]
+}}",
+        ["de"] = @"Diese Dateien passten nicht zur vorherigen Analyse. Weisen Sie JEDER die am besten passende Kategorie aus dieser Liste zu (nur diese sind erlaubt):
+{0}
+
+Erstellen Sie keine neuen Kategorien und lassen Sie sie nicht in ""Andere"": Wählen Sie immer die nächstgelegene.
+Dateien:
+{1}
+
+Antworten Sie NUR mit gültigem JSON, ohne zusätzlichen Text:
+{{
+  ""dateien"": [
+    {{ ""datei"": ""name"", ""kategorie"": ""Kategorie"" }}
+  ]
+}}",
+        ["pt"] = @"Estes arquivos não se encaixaram na análise anterior. Atribua a CADA um a categoria mais adequada desta lista (são as únicas permitidas):
+{0}
+
+Não crie categorias novas e não os deixe em ""Outros"": escolha sempre a mais próxima.
+Arquivos:
+{1}
+
+Responda APENAS com JSON válido, sem texto adicional:
+{{
+  ""arquivos"": [
+    {{ ""arquivo"": ""nome"", ""categoria"": ""Categoria"" }}
+  ]
+}}",
+        ["it"] = @"Questi file non rientravano nell'analisi precedente. Assegna a CIASCUNO la categoria più adatta di questo elenco (sono le uniche consentite):
+{0}
+
+Non creare nuove categorie e non lasciarli in ""Altri"": scegli sempre la più vicina.
+File:
+{1}
+
+Rispondi SOLO con JSON valido, senza testo aggiuntivo:
+{{
+  ""file"": [
+    {{ ""file"": ""nome"", ""categoria"": ""Categoria"" }}
+  ]
+}}",
+        ["ja"] = @"これらのファイルは前回の分析に当てはまりませんでした。次のリスト（これらが唯一の候補です）から、各ファイルに最も適切なカテゴリを割り当ててください:
+{0}
+
+新しいカテゴリを作成せず、「その他」にも残さないでください。必ず最も近いものを選んでください。
+ファイル:
+{1}
+
+追加のテキストなしで、有効な JSON のみで回答してください:
+{{
+  ""ファイル"": [
+    {{ ""ファイル"": ""名前"", ""カテゴリ"": ""カテゴリ"" }}
+  ]
+}}",
+        ["zh"] = @"这些文件在上次分析中没有匹配项。请将每个文件分配到此列表中最合适的分类（仅限这些）：
+{0}
+
+请勿创建新分类，也不要将它们留在“其他”中：请始终选择最接近的分类。
+文件：
+{1}
+
+请只回复有效的 JSON，不要附加任何文字：
+{{
+  ""文件"": [
+    {{ ""文件"": ""名称"", ""分类"": ""分类"" }}
+  ]
+}}",
+    };
+
     public static string AssignmentBatch(
         ClassificationMode mode, string criterionKey, Idioma idioma, IEnumerable<string> files,
         IEnumerable<string>? knownCategories = null)
@@ -258,6 +367,23 @@ Rispondi SOLO con un JSON in cui ogni chiave è una categoria finale e il suo va
         var listado = new StringBuilder();
         listado.Append("- ").Append(string.Join("\n- ", distinct)).Append('\n');
         return string.Format(KnownCategories[culture], listado.ToString().TrimEnd('\n'));
+    }
+
+    /// <summary>Lote especial: reasigna los archivos de "Otros" a una de las categorías finales ya definidas.</summary>
+    public static string ReassignOthers(IReadOnlyList<string> categories, IEnumerable<string> files, Idioma idioma)
+    {
+        string culture = idioma.CultureCode();
+        var listado = new StringBuilder();
+        foreach (var c in categories)
+            listado.Append("- ").Append(c).Append('\n');
+        var archivos = new StringBuilder();
+        foreach (var f in files)
+            archivos.Append("- ").Append(f).Append('\n');
+
+        return string.Format(
+            ReassignTemplate[culture],
+            listado.ToString().TrimEnd('\n'),
+            archivos.ToString().TrimEnd('\n'));
     }
 
     public static string Consolidate(IReadOnlyList<CategoryStat> categories, int depth, Idioma idioma)

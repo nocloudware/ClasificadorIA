@@ -88,6 +88,13 @@ public static class SelfTest
 
         string consDe = PromptGenerator.Consolidate(stats, 5, Idioma.Alemán);
         Assert("Consolidación DE usa final", consDe.Contains("\"final\""));
+
+        string reassignEs = PromptGenerator.ReassignOthers(new[] { "Rock", "Pop" }, files, Idioma.Español);
+        Assert("Otros ES lista solo las categorías finales", reassignEs.Contains("- Rock") && reassignEs.Contains("- Pop"));
+        Assert("Otros ES pide formato archivos", reassignEs.Contains("\"archivos\""));
+        Assert("Otros ES prohíbe categorías nuevas", reassignEs.Contains("categorías nuevas"));
+        string reassignEn = PromptGenerator.ReassignOthers(new[] { "Rock" }, files, Idioma.Inglés);
+        Assert("Otros EN pide formato files", reassignEn.Contains("\"files\""));
     }
 
     // ── Parser ─────────────────────────────────────────────────────────
@@ -308,7 +315,47 @@ public static class SelfTest
             batchSize: 2, depth: 10);
         startClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español, new[] { "can1.mp3", "can2.mp3", "can3.mp3" },
             onBatchStarted: (i, n) => starts.Add((i, n))).GetAwaiter().GetResult();
-        Assert("Batch: onBatchStarted por lote", starts.Count == 2 && starts[0] == (1, 2) && starts[1] == (2, 2), string.Join(",", starts));
+        Assert("Batch: onBatchStarted por lote", starts.Count == 3 && starts[0] == (1, 2) && starts[1] == (2, 2) && starts[2] == (3, 3), string.Join(",", starts));
+
+        // Lote especial: los archivos de Otros se reasignan a una categoría final existente.
+        int reassignStep = 0;
+        string reassignPrompt = "";
+        var reassignClassifier = new BatchClassifier((prompt, _) =>
+        {
+            reassignStep++;
+            if (reassignStep == 1)
+                return Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"rock"},{"archivo":"can2.mp3","categoria":"pop"},{"archivo":"can3.mp3","categoria":"misc"}]}""");
+            if (reassignStep == 2)
+                return Task.FromResult("""{"finales":{"Rock":["rock"],"Pop":["pop"]}}""");
+            reassignPrompt = prompt;
+            return Task.FromResult("""{"archivos":[{"archivo":"can3.mp3","categoria":"Pop"}]}""");
+        }, batchSize: 10, depth: 10);
+        var reassignResult = reassignClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español,
+            new[] { "can1.mp3", "can2.mp3", "can3.mp3" }).GetAwaiter().GetResult();
+        Assert("Batch: Otros se reasigna a categoría final",
+            reassignResult.Any(r => r.Category == "Pop" && r.Files.Contains("can3.mp3")) && reassignResult.All(r => r.Category != "Otros"),
+            string.Join(",", reassignResult.Select(r => $"{r.Category}({r.Files.Count})")));
+        Assert("Batch: prompt de Otros solo ofrece categorías finales",
+            reassignPrompt.Contains("- Rock") && reassignPrompt.Contains("- Pop") && !reassignPrompt.Contains("misc"),
+            reassignPrompt);
+
+        // Si el modelo inventa una categoría nueva, el archivo se queda en Otros.
+        int closedStep = 0;
+        var closedClassifier = new BatchClassifier((_, _) =>
+        {
+            closedStep++;
+            return closedStep switch
+            {
+                1 => Task.FromResult("""{"archivos":[{"archivo":"can1.mp3","categoria":"rock"},{"archivo":"can2.mp3","categoria":"pop"},{"archivo":"can3.mp3","categoria":"misc"}]}"""),
+                2 => Task.FromResult("""{"finales":{"Rock":["rock"],"Pop":["pop"]}}"""),
+                _ => Task.FromResult("""{"archivos":[{"archivo":"can3.mp3","categoria":"Jazz"}]}""")
+            };
+        }, batchSize: 10, depth: 10);
+        var closedResult = closedClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español,
+            new[] { "can1.mp3", "can2.mp3", "can3.mp3" }).GetAwaiter().GetResult();
+        Assert("Batch: Otros no acepta categorías nuevas",
+            closedResult.Any(r => r.Category == "Otros" && r.Files.Contains("can3.mp3")) && closedResult.All(r => r.Category != "Jazz"),
+            string.Join(",", closedResult.Select(r => $"{r.Category}({r.Files.Count})")));
 
         // Cancelación: token cancelado aborta sin llamar al generador.
         int cancelledCalls = 0;
@@ -371,7 +418,7 @@ public static class SelfTest
         }, batchSize: int.MaxValue, depth: 10, maxOutputLimit: 8192);
         var shrinkResult = shrinkClassifier.ClassifyAsync(ClassificationModes.Default, "Tema", Idioma.Español,
             Enumerable.Range(1, 500).Select(i => $"{i}.mp3").ToArray()).GetAwaiter().GetResult();
-        Assert("Batch: lote achicado por límite del modelo", shrunkCalls == 4, $"calls={shrunkCalls} (esperado 3 asignaciones + 1 consolidación)");
+        Assert("Batch: lote achicado por límite del modelo", shrunkCalls == 7, $"calls={shrunkCalls} (esperado 3 asignaciones + 1 consolidación + 3 reasignación de Otros)");
 
         // Incremental: el lote 2 recibe las categorías del lote 1 como guía.
         var assignmentPrompts = new List<string>();

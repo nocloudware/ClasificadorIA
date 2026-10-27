@@ -127,7 +127,89 @@ public sealed class BatchClassifier
             }
         }
 
-        return LocalClassifier.CapToDepth(results, _depth, others);
+        var finalResults = LocalClassifier.CapToDepth(results, _depth, others);
+
+        // Lote especial: una sola pasada sobre "Otros" contra las categorías finales.
+        return await ReassignOthersAsync(finalResults, idioma, chunkSize, onStatus, onBatchStarted, batchIndex, ct)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<List<ClassificationResult>> ReassignOthersAsync(
+        List<ClassificationResult> results, Idioma idioma, int chunkSize,
+        Action<string>? onStatus, Action<int, int>? onBatchStarted, int doneBatches, CancellationToken ct)
+    {
+        string others = Translations.Get("Otros", idioma);
+        int othersIndex = results.FindIndex(r => string.Equals(r.Category, others, StringComparison.OrdinalIgnoreCase));
+        if (othersIndex < 0) return results;
+
+        var categories = results.Where((_, i) => i != othersIndex).Select(r => r.Category).ToList();
+        var pending = results[othersIndex].Files.ToList();
+        if (categories.Count == 0 || pending.Count == 0) return results;
+
+        var allowed = new HashSet<string>(categories, StringComparer.OrdinalIgnoreCase);
+        var moved = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var left = new List<string>();
+
+        int chunks = (int)Math.Max(1, ((long)pending.Count + chunkSize - 1) / chunkSize);
+        int chunkIndex = 0;
+        foreach (var chunk in Chunk(pending, chunkSize))
+        {
+            ct.ThrowIfCancellationRequested();
+            chunkIndex++;
+            int number = doneBatches + chunkIndex;
+            int totalBatches = doneBatches + chunks;
+            onBatchStarted?.Invoke(number, totalBatches);
+            onStatus?.Invoke(string.Format(Translations.Get("BatchStatus", idioma), number, totalBatches));
+
+            var batchFiles = chunk.ToList();
+            string prompt = PromptGenerator.ReassignOthers(categories, batchFiles, idioma);
+            string text;
+            try
+            {
+                text = await GenerateWithRetryAsync(prompt, MaxTokensConst.ForFiles(batchFiles.Count),
+                    onStatus, number, totalBatches, idioma, ct).ConfigureAwait(false);
+            }
+            catch (AiException)
+            {
+                // Si falla la reasignación se conserva la clasificación ya hecha: esos archivos quedan en Otros.
+                left.AddRange(batchFiles);
+                continue;
+            }
+
+            var parsed = ResponseParser.ParseBatchAssignments(text, batchFiles, idioma);
+            AiClient.WriteLog($"PARSE Otros {chunkIndex}/{chunks}",
+                $"files={batchFiles.Count} parsed={parsed.Count} allowed={categories.Count}");
+            foreach (var f in batchFiles)
+            {
+                if (parsed.TryGetValue(f, out string? cat) && allowed.Contains(cat))
+                {
+                    if (!moved.TryGetValue(cat, out var list))
+                        moved[cat] = list = new List<string>();
+                    list.Add(f);
+                }
+                else
+                {
+                    left.Add(f);
+                }
+            }
+        }
+
+        var rebuilt = new List<ClassificationResult>(results.Count);
+        for (int i = 0; i < results.Count; i++)
+        {
+            var r = results[i];
+            if (i == othersIndex)
+            {
+                if (left.Count > 0)
+                    rebuilt.Add(new ClassificationResult(r.Category, left.AsReadOnly()));
+                continue;
+            }
+            var files = moved.TryGetValue(r.Category, out var extra)
+                ? r.Files.Concat(extra).ToList()
+                : r.Files.ToList();
+            rebuilt.Add(new ClassificationResult(r.Category, files.AsReadOnly()));
+        }
+        return rebuilt;
     }
 
     private static IEnumerable<IEnumerable<string>> Chunk(IReadOnlyList<string> items, int size)
